@@ -37,3 +37,43 @@ BOOL ReadDVDForFileSystem(
 	CDB::_READ12* cdb,
 	LPBYTE lpBuf
 );
+
+BOOL ReadXBOXDirectoryRecord(
+	PEXT_ARG pExtArg,
+	PDEVICE pDevice,
+	CDB::_READ12* pCdb,
+	UINT uiDirPos,
+	UINT uiDirTblSize,
+	UINT uiStartLBA,
+	LPBYTE pTab
+);
+
+BOOL ReadXBOXFileSystem(
+	PEXT_ARG pExtArg,
+	PDEVICE pDevice,
+	DWORD dwStartLBA
+);
+
+BOOL ReadNintendoFileSystem(
+	PDEVICE pDevice,
+	LPCTSTR pszFullPath,
+	DISC_TYPE type
+);
+
+BOOL ReadWiiPartition(
+	PDEVICE pDevice,
+	LPCTSTR pszFullPath
+);
+
+BOOL ReadBDForParamSfo(
+	PEXT_ARG pExtArg,
+	PDEVICE pDevice,
+	PDISC pDisc,
+	CDB::_READ12* pCdb,
+	LPBYTE lpBuf
+);
+
+BOOL ReadSACDFileSystem(
+	PEXT_ARG pExtArg,
+	PDEVICE pDevice
+);

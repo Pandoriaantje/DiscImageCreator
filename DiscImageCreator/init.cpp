@@ -71,7 +71,8 @@ BOOL InitTocFullData(
 		return FALSE;
 	}
 	(*pDisc)->SCSI.nFirstLBAofLeadout = -1;
-	(*pDisc)->SCSI.nFirstLBAof2ndSession = -1;
+	// init this by ReadTOCFull
+//	(*pDisc)->SCSI.nFirstLBAof2ndSession = -1;
 	return TRUE;
 }
 
@@ -86,22 +87,37 @@ BOOL InitTocTextData(
 	try {
 		if (pDevice->FEATURE.byCanCDText || *pExecType == gd || *pExecType == swap) {
 			if (NULL == ((*pDisc)->SUB.pszISRC = 
-				(LPSTR*)calloc(dwTrackAllocSize, sizeof(UINT_PTR)))) {
+				(LPSTR*)calloc(dwTrackAllocSize * 2, sizeof(INT_PTR)))) {
 				OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
 				throw FALSE;
 			}
 			if (NULL == ((*pDisc)->SCSI.pszTitle = 
-				(LPSTR*)calloc(dwTrackAllocSize, sizeof(UINT_PTR)))) {
+				(LPSTR*)calloc(dwTrackAllocSize * 2, sizeof(INT_PTR)))) {
 				OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
 				throw FALSE;
 			}
 			if (NULL == ((*pDisc)->SCSI.pszPerformer = 
-				(LPSTR*)calloc(dwTrackAllocSize, sizeof(UINT_PTR)))) {
+				(LPSTR*)calloc(dwTrackAllocSize * 2, sizeof(INT_PTR)))) {
 				OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
 				throw FALSE;
 			}
 			if (NULL == ((*pDisc)->SCSI.pszSongWriter = 
-				(LPSTR*)calloc(dwTrackAllocSize, sizeof(UINT_PTR)))) {
+				(LPSTR*)calloc(dwTrackAllocSize * 2, sizeof(INT_PTR)))) {
+				OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
+				throw FALSE;
+			}
+			if (NULL == ((*pDisc)->SCSI.pszTitleW =
+				(LPSTR*)calloc(dwTrackAllocSize * 2, sizeof(INT_PTR)))) {
+				OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
+				throw FALSE;
+			}
+			if (NULL == ((*pDisc)->SCSI.pszPerformerW =
+				(LPSTR*)calloc(dwTrackAllocSize * 2, sizeof(INT_PTR)))) {
+				OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
+				throw FALSE;
+			}
+			if (NULL == ((*pDisc)->SCSI.pszSongWriterW =
+				(LPSTR*)calloc(dwTrackAllocSize * 2, sizeof(INT_PTR)))) {
 				OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
 				throw FALSE;
 			}
@@ -125,6 +141,21 @@ BOOL InitTocTextData(
 					throw FALSE;
 				}
 				if (NULL == ((*pDisc)->SCSI.pszSongWriter[h] = 
+					(LPSTR)calloc(textSize, sizeof(CHAR)))) {
+					OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
+					throw FALSE;
+				}
+				if (NULL == ((*pDisc)->SCSI.pszTitleW[h] =
+					(LPSTR)calloc(textSize, sizeof(CHAR)))) {
+					OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
+					throw FALSE;
+				}
+				if (NULL == ((*pDisc)->SCSI.pszPerformerW[h] =
+					(LPSTR)calloc(textSize, sizeof(CHAR)))) {
+					OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
+					throw FALSE;
+				}
+				if (NULL == ((*pDisc)->SCSI.pszSongWriterW[h] =
 					(LPSTR)calloc(textSize, sizeof(CHAR)))) {
 					OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
 					throw FALSE;
@@ -169,7 +200,7 @@ BOOL InitProtectData(
 			throw FALSE;
 		}
 		if (NULL == ((*pDisc)->PROTECT.pNameForExe =
-			(LPCH*)calloc(EXELBA_STORE_SIZE, sizeof(UINT_PTR)))) {
+			(LPCH*)calloc(EXELBA_STORE_SIZE, sizeof(INT_PTR)))) {
 			OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
 			throw FALSE;
 		}
@@ -201,12 +232,12 @@ BOOL InitSubData(
 			throw FALSE;
 		}
 		if (NULL == ((*pDisc)->SUB.lpFirstLBAListOnSub =
-			(LPINT*)calloc(dwTrackAllocSize, sizeof(UINT_PTR)))) {
+			(LPINT*)calloc(dwTrackAllocSize * 2, sizeof(INT_PTR)))) {
 			OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
 			throw FALSE;
 		}
 		if (NULL == ((*pDisc)->SUB.lpFirstLBAListOnSubSync = 
-			(LPINT*)calloc(dwTrackAllocSize, sizeof(UINT_PTR)))) {
+			(LPINT*)calloc(dwTrackAllocSize * 2, sizeof(INT_PTR)))) {
 			OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
 			throw FALSE;
 		}
@@ -241,13 +272,19 @@ BOOL InitSubData(
 			throw FALSE;
 		}
 
-		size_t dwIndexAllocSize = (size_t)MAXIMUM_NUMBER_INDEXES * sizeof(UINT_PTR);
+		size_t dwIndexAllocSize = (size_t)MAXIMUM_NUMBER_INDEXES * sizeof(INT);
 		for (size_t h = 0; h < dwTrackAllocSize; h++) {
 			if (NULL == ((*pDisc)->SUB.lpFirstLBAListOnSub[h] = (LPINT)malloc(dwIndexAllocSize))) {
 				OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
 				throw FALSE;
 			}
 			FillMemory((*pDisc)->SUB.lpFirstLBAListOnSub[h], dwIndexAllocSize, -1);
+#if 0
+			for (INT j = 0; j < 2; j++) {
+				OutputString(_T("lpFirstLBAListOnSub[%zd][%zd]: %d, %p\n")
+					, h, j, (*pDisc)->SUB.lpFirstLBAListOnSub[h][j], &(*pDisc)->SUB.lpFirstLBAListOnSub[h][j]);
+			}
+#endif
 			if (NULL == ((*pDisc)->SUB.lpFirstLBAListOnSubSync[h] = (LPINT)malloc(dwIndexAllocSize))) {
 				OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
 				throw FALSE;
@@ -281,73 +318,79 @@ BOOL InitLogFile(
 	PEXT_ARG pExtArg,
 	_TCHAR* szFullPath
 ) {
-	CHAR path[_MAX_PATH] = { 0 };
+	CHAR path[_MAX_PATH] = {};
 #ifdef UNICODE
 	WideCharToMultiByte(CP_ACP, 0, szFullPath, _MAX_PATH, path, sizeof(path), NULL, NULL);
 #else
 	strncpy(path, szFullPath, sizeof(path));
 #endif
-	CONST INT size = 32;
-	CHAR szDiscLogtxt[size] = { 0 };
-	CHAR szDriveLogtxt[size] = { 0 };
-	CHAR szVolDescLogtxt[size] = { 0 };
-	CHAR szMainInfoLogtxt[size] = { 0 };
-	CHAR szMainErrorLogtxt[size] = { 0 };
-	CHAR szSubInfoLogtxt[size] = { 0 };
-	CHAR szSubErrorLogtxt[size] = { 0 };
-	CHAR szC2ErrorLogtxt[size] = { 0 };
-
-	strncpy(szDiscLogtxt, "_disc", size);
-	strncpy(szDriveLogtxt, "_drive", size);
-	strncpy(szVolDescLogtxt, "_volDesc", size);
-	strncpy(szMainInfoLogtxt, "_mainInfo", size);
-	strncpy(szMainErrorLogtxt, "_mainError", size);
-	strncpy(szSubInfoLogtxt, "_subInfo", size);
-	strncpy(szSubErrorLogtxt, "_subError", size);
-	strncpy(szC2ErrorLogtxt, "_c2Error", size);
-		
 	if (NULL == (g_LogFile.fpDisc = CreateOrOpenFileA(
-		path, szDiscLogtxt, NULL, NULL, NULL, ".txt", "w", 0, 0))) {
+		path, "_disc", NULL, NULL, NULL, ".txt", "w", 0, 0))) {
 		OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
 		return FALSE;
 	}
+	if (setvbuf(g_LogFile.fpDisc, NULL, _IONBF, 0) != 0) {
+		OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
+	}
 	BOOL bRet = TRUE;
 	try {
-		if (*pExecType != fd) {
-			if (NULL == (g_LogFile.fpDrive = CreateOrOpenFileA(
-				path, szDriveLogtxt, NULL, NULL, NULL, ".txt", "w", 0, 0))) {
+		if (NULL == (g_LogFile.fpDrive = CreateOrOpenFileA(
+			path, "_drive", NULL, NULL, NULL, ".txt", "w", 0, 0))) {
+			OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
+			throw FALSE;
+		}
+		if (setvbuf(g_LogFile.fpDrive, NULL, _IONBF, 0) != 0) {
+			OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
+		}
+		if (*pExecType != fd && * pExecType != disk) {
+			if (NULL == (g_LogFile.fpVolDesc = CreateOrOpenFileA(
+				path, "_volDesc", NULL, NULL, NULL, ".txt", "w", 0, 0))) {
 				OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
 				throw FALSE;
 			}
-			if (NULL == (g_LogFile.fpVolDesc = CreateOrOpenFileA(
-				path, szVolDescLogtxt, NULL, NULL, NULL, ".txt", "w", 0, 0))) {
+			if (setvbuf(g_LogFile.fpVolDesc, NULL, _IONBF, 0) != 0) {
 				OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
-				throw FALSE;
 			}
 			if (NULL == (g_LogFile.fpMainInfo = CreateOrOpenFileA(
-				path, szMainInfoLogtxt, NULL, NULL, NULL, ".txt", "w", 0, 0))) {
+				path, "_mainInfo", NULL, NULL, NULL, ".txt", "w", 0, 0))) {
 				OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
 				throw FALSE;
+			}
+			if (setvbuf(g_LogFile.fpMainInfo, NULL, _IONBF, 0) != 0) {
+				OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
 			}
 			if (NULL == (g_LogFile.fpMainError = CreateOrOpenFileA(
-				path, szMainErrorLogtxt, NULL, NULL, NULL, ".txt", "w", 0, 0))) {
+				path, "_mainError", NULL, NULL, NULL, ".txt", "w", 0, 0))) {
 				OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
 				throw FALSE;
 			}
-			if (*pExecType != dvd && *pExecType != bd && *pExecType != xbox) {
+			if (setvbuf(g_LogFile.fpMainError, NULL, _IONBF, 0) != 0) {
+				OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
+			}
+			if (*pExecType != dvd && *pExecType != bd && *pExecType != sacd &&
+				*pExecType != xbox && *pExecType != xboxswap &&
+				*pExecType != xgd2swap && *pExecType != xgd3swap) {
 				if (NULL == (g_LogFile.fpSubInfo = CreateOrOpenFileA(
-					path, szSubInfoLogtxt, NULL, NULL, NULL, ".txt", "w", 0, 0))) {
+					path, "_subInfo", NULL, NULL, NULL, ".txt", "w", 0, 0))) {
 					OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
 					throw FALSE;
 				}
+				if (setvbuf(g_LogFile.fpSubInfo, NULL, _IONBF, 0) != 0) {
+					OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
+				}
 				if (NULL == (g_LogFile.fpSubError = CreateOrOpenFileA(
-					path, szSubErrorLogtxt, NULL, NULL, NULL, ".txt", "w", 0, 0))) {
+					path, "_subError", NULL, NULL, NULL, ".txt", "w", 0, 0))) {
+					OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
+					throw FALSE;
+				}
+				if (NULL == (g_LogFile.fpSubReadable = CreateOrOpenFileA(
+					path, "_subReadable", NULL, NULL, NULL, ".txt", "w", 0, 0))) {
 					OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
 					throw FALSE;
 				}
 				if (pExtArg->byC2) {
 					if (NULL == (g_LogFile.fpC2Error = CreateOrOpenFileA(
-						path, szC2ErrorLogtxt, NULL, NULL, NULL, ".txt", "w", 0, 0))) {
+						path, "_c2Error", NULL, NULL, NULL, ".txt", "w", 0, 0))) {
 						OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
 						throw FALSE;
 					}
@@ -357,6 +400,9 @@ BOOL InitLogFile(
 						path, "_subIntention", NULL, NULL, NULL, ".txt", "w", 0, 0))) {
 						OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
 						throw FALSE;
+					}
+					if (setvbuf(g_LogFile.fpSubIntention, NULL, _IONBF, 0) != 0) {
+						OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
 					}
 				}
 			}
@@ -402,11 +448,17 @@ VOID TerminateTocTextData(
 			FreeAndNull((*pDisc)->SCSI.pszTitle[i]);
 			FreeAndNull((*pDisc)->SCSI.pszPerformer[i]);
 			FreeAndNull((*pDisc)->SCSI.pszSongWriter[i]);
+			FreeAndNull((*pDisc)->SCSI.pszTitleW[i]);
+			FreeAndNull((*pDisc)->SCSI.pszPerformerW[i]);
+			FreeAndNull((*pDisc)->SCSI.pszSongWriterW[i]);
 		}
 		FreeAndNull((*pDisc)->SUB.pszISRC);
 		FreeAndNull((*pDisc)->SCSI.pszTitle);
 		FreeAndNull((*pDisc)->SCSI.pszPerformer);
 		FreeAndNull((*pDisc)->SCSI.pszSongWriter);
+		FreeAndNull((*pDisc)->SCSI.pszTitleW);
+		FreeAndNull((*pDisc)->SCSI.pszPerformerW);
+		FreeAndNull((*pDisc)->SCSI.pszSongWriterW);
 	}
 }
 
@@ -414,9 +466,7 @@ VOID TerminateProtectData(
 	PDISC* pDisc
 ) {
 	for (size_t h = 0; h < EXELBA_STORE_SIZE; h++) {
-		if ((*pDisc)->PROTECT.pNameForExe) {
-			FreeAndNull((*pDisc)->PROTECT.pNameForExe[h]);
-		}
+		FreeAndNull((*pDisc)->PROTECT.pNameForExe[h]);
 	}
 	FreeAndNull((*pDisc)->PROTECT.pNameForExe);
 	FreeAndNull((*pDisc)->PROTECT.pExtentPosForExe);
@@ -428,11 +478,9 @@ VOID TerminateSubData(
 ) {
 	size_t dwTrackAllocSize =
 		(*pExecType == gd || *pExecType == swap) ? MAXIMUM_NUMBER_TRACKS : (size_t)(*pDisc)->SCSI.toc.LastTrack + 1;
-	for (size_t h = 0; h < dwTrackAllocSize; h++) {
-		if ((*pDisc)->SUB.lpFirstLBAListOnSub) {
+	if ((*pDisc)->SUB.lpFirstLBAListOnSub && (*pDisc)->SUB.lpFirstLBAListOnSubSync) {
+		for (size_t h = 0; h < dwTrackAllocSize; h++) {
 			FreeAndNull((*pDisc)->SUB.lpFirstLBAListOnSub[h]);
-		}
-		if ((*pDisc)->SUB.lpFirstLBAListOnSubSync) {
 			FreeAndNull((*pDisc)->SUB.lpFirstLBAListOnSubSync[h]);
 		}
 	}
@@ -453,14 +501,17 @@ VOID TerminateLogFile(
 	PEXT_ARG pExtArg
 ) {
 	FcloseAndNull(g_LogFile.fpDisc);
-	if (*pExecType != fd) {
-		FcloseAndNull(g_LogFile.fpDrive);
+	FcloseAndNull(g_LogFile.fpDrive);
+	if (*pExecType != fd && *pExecType != disk) {
 		FcloseAndNull(g_LogFile.fpVolDesc);
 		FcloseAndNull(g_LogFile.fpMainInfo);
 		FcloseAndNull(g_LogFile.fpMainError);
-		if (*pExecType != dvd && *pExecType != bd && *pExecType != xbox) {
+		if (*pExecType != dvd && *pExecType != bd &&
+			*pExecType != xbox && *pExecType != xboxswap &&
+			*pExecType != xgd2swap && *pExecType != xgd3swap) {
 			FcloseAndNull(g_LogFile.fpSubInfo);
 			FcloseAndNull(g_LogFile.fpSubError);
+			FcloseAndNull(g_LogFile.fpSubReadable);
 			if (pExtArg->byC2) {
 				FcloseAndNull(g_LogFile.fpC2Error);
 			}

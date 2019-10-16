@@ -15,8 +15,33 @@
  */
 #pragma once
 
+BOOL IsXbox(
+	PEXEC_TYPE pExecType
+);
+
+BOOL IsCDBasedDisc(
+	PEXEC_TYPE pExecType,
+	PDISC pDisc
+);
+
+BOOL IsDVDBasedDisc(
+	PDISC pDisc
+);
+
+BOOL IsBDBasedDisc(
+	PDISC pDisc
+);
+
 BOOL IsCDRDrive(
 	PDISC pDisc
+);
+
+BOOL IsValidPS3Drive(
+	PDEVICE pDevice
+);
+
+BOOL IsValidAsusDrive(
+	PDEVICE pDevice
 );
 
 BOOL IsValidPlextorDrive(
@@ -70,6 +95,11 @@ BOOL IsValidProtectedSector(
 	INT nLBA
 );
 
+BOOL IsValidSafeDiscSector(
+	PDISC pDisc,
+	PDISC_PER_SECTOR pDiscPerSector
+);
+
 BOOL IsValidIntentionalC2error(
 	PDISC pDisc,
 	PDISC_PER_SECTOR pDiscPerSector
@@ -90,7 +120,7 @@ BOOL IsValidSubQAdrISRC(
 );
 
 BOOL IsValidSubQAdrSector(
-	DWORD dwSubAdditionalNum,
+	UINT uiSubAdditionalNum,
 	PSUB_Q pSubQ,
 	INT nRangeLBA,
 	INT nFirstLBA,
@@ -148,5 +178,10 @@ BOOL IsValidSubQAMSF(
 BOOL ContainsC2Error(
 	PDEVICE pDevice,
 	LPBYTE lpBuf,
-	LPDWORD lpdwC2errorNum
+	LPUINT lpuiC2errorNum,
+	BOOL bOutputLog
+);
+
+BOOL AnalyzeIfoFile(
+	PDEVICE pDevice
 );

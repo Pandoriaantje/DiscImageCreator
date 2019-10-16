@@ -42,9 +42,8 @@ BOOL ReadCDForCheckingSubQAdrFirst(
 	LPBYTE* ppBuf,
 	LPBYTE* lpBuf,
 	LPBYTE lpCmd,
-	LPDWORD dwBufLen,
-	LPINT nOfs,
-	CDFLAG::_READ_CD::_EXPECTED_SECTOR_TYPE flg
+	LPUINT uiBufLen,
+	LPINT nOfs
 );
 
 BOOL ReadCDForCheckingSubQAdr(
@@ -54,7 +53,7 @@ BOOL ReadCDForCheckingSubQAdr(
 	PDISC_PER_SECTOR pDiscPerSector,
 	LPBYTE lpCmd,
 	LPBYTE lpBuf,
-	DWORD dwBufLen,
+	UINT uiBufLen,
 	INT nOfs,
 	BYTE byIdxOfTrack,
 	LPBYTE byMode,
@@ -83,8 +82,7 @@ BOOL ReadCDCheck(
 	PEXEC_TYPE pExecType,
 	PEXT_ARG pExtArg,
 	PDEVICE pDevice,
-	PDISC pDisc,
-	CDFLAG::_READ_CD::_EXPECTED_SECTOR_TYPE flg
+	PDISC pDisc
 );
 
 BOOL ReadGDForCheckingSubQAdr(

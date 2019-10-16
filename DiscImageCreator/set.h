@@ -32,12 +32,24 @@ VOID SetReadD8Command(
 	CDFLAG::_PLXTR_READ_CDDA::_SUB_CHANNEL_SELECTION Sub
 );
 
+VOID SetReadDiscCommand(
+	PEXEC_TYPE pExecType,
+	PEXT_ARG pExtArg,
+	PDEVICE pDevice,
+	BYTE byTransferLen,
+	CDFLAG::_READ_CD::_ERROR_FLAGS c2,
+	CDFLAG::_READ_CD::_SUB_CHANNEL_SELECTION tmpsub,
+	LPBYTE lpCmd,
+	BOOL bOutputLog
+);
+
 VOID SetCommandForTransferLength(
 	PEXEC_TYPE pExecType,
 	PDEVICE pDevice,
 	LPBYTE pCdb,
 	DWORD dwSize,
-	LPBYTE lpTransferLen
+	LPBYTE lpTransferLen,
+	LPBYTE lpRoopLen
 );
 
 VOID SetBufferSizeForReadCD(
@@ -77,15 +89,8 @@ VOID SetAndOutputTocCDText(
 	PCDROM_TOC_CD_TEXT_DATA_BLOCK pDesc,
 	LPCH pTmpText,
 	WORD wTocTextEntries,
-	WORD wAllTextSize
-);
-
-VOID SetAndOutputTocCDWText(
-	PCDROM_TOC_CD_TEXT_DATA_BLOCK pDesc,
-	LPCH pTmpText,
-	WORD wFirstEntries,
-	WORD wTocTextEntries,
-	WORD wAllTextSize
+	UINT uiTocTextEntriesIdx,
+	BOOL bUnicode
 );
 
 VOID SetCDOffset(
@@ -122,16 +127,17 @@ VOID SetMCNToString(
 VOID SetLBAForFirstAdr(
 	INT nFirstLBA[][2],
 	INT nRangeLBA[][2],
-	LPSTR strAdr,
+	LPCSTR strAdr,
 	LPINT nAdrLBAList,
 	BYTE byIdxOfSession,
 	BYTE byPlxtrDrive
 );
 
 VOID SetBufferFromTmpSubQData(
-	SUB_Q_PER_SECTOR pSubQ,
 	LPBYTE lpSubcode,
-	BYTE bycurrent
+	SUB_Q_PER_SECTOR pSubQ,
+	BOOL bCurrent,
+	BOOL bUpdateCrc
 );
 
 VOID SetBufferFromMCN(

@@ -30,7 +30,8 @@ VOID OutputDVDStructureFormat(
 	BYTE byFormatCode,
 	WORD wFormatLength,
 	LPBYTE lpFormat,
-	LPDWORD lpdwSectorLength
+	LPDWORD lpdwSectorLength,
+	UCHAR layerNumber
 );
 
 VOID OutputDVDCopyrightManagementInformation(
@@ -39,12 +40,23 @@ VOID OutputDVDCopyrightManagementInformation(
 );
 
 VOID OutputBDStructureFormat(
+	PDISC pDisc,
 	BYTE byFormatCode,
 	WORD wFormatLength,
-	LPBYTE lpFormat
+	LPBYTE lpFormat,
+	INT nPacCnt
+);
+
+VOID OutputManufacturingInfoForXbox(
+	LPBYTE buf
 );
 
 VOID OutputXboxSecuritySector(
+	PDISC pDisc,
+	LPBYTE buf
+);
+
+VOID OutputXbox360SecuritySector(
 	PDISC pDisc,
 	LPBYTE buf
 );

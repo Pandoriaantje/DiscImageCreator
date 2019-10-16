@@ -23,8 +23,13 @@ typedef enum _EXEC_TYPE {
 	gd,
 	dvd,
 	xbox,
+	xboxswap,
+	xgd2swap,
+	xgd3swap,
 	bd,
+	sacd,
 	fd,
+	disk,
 	stop,
 	start,
 	ejecttray,
@@ -32,7 +37,8 @@ typedef enum _EXEC_TYPE {
 	reset,
 	drivespeed,
 	sub,
-	mds
+	mds,
+	merge
 } EXEC_TYPE, *PEXEC_TYPE;
 
 typedef enum _LOG_TYPE {
@@ -54,18 +60,28 @@ typedef enum _MAIN_DATA_TYPE {
 	scrambled
 } MAIN_DATA_TYPE, *PMAIN_DATA_TYPE;
 
+typedef enum _BYTE_PAD_TYPE {
+	padByAll0,
+	padByUsr0,
+	padByUsr55,
+	padByPrevSector
+} BYTE_PAD_TYPE, *PBYTE_PAD_TYPE;
+
 typedef enum _TRACK_TYPE {
 	audioOnly,
 	dataExist,
-	pregapIn1stTrack
+	pregapAudioIn1stTrack,
+	pregapDataIn1stTrack
 } TRACK_TYPE, *PTRACK_TYPE;
 
+// Protection list
+// https://www.cdmediaworld.com/hardware/cdrom/cd_protections.shtml
 typedef enum _PROTECT_TYPE_CD {
 	no,
-	cdidx,
 	cds300,
 	codelock,
 	datel,
+	datelAlt,
 	laserlock,
 	proring,
 	protectCDVOB,
@@ -74,10 +90,13 @@ typedef enum _PROTECT_TYPE_CD {
 	securomTmp,
 	securomV1, // a.k.a SecuROM OLD ((8 shifted RMSF/AMSF + 1 error) * 24 times = 216 sector error)
 	securomV2, // a.k.a SecuROM NEW ((8 shifted RMSF/AMSF + 1 error) * 10 times = 90 sector error)
-	securomV3, // a.k.a SecuROM NEW ((8 shifted RMSF/AMSF + 1 error) * 11 times = 99 sector error) 
+	securomV3_1, // a.k.a SecuROM NEW ((8 shifted RMSF/AMSF + 1 error) * 11 times = 99 sector error) 
+	securomV3_2, // a.k.a SecuROM NEW ((8 shifted RMSF/AMSF + 1 error) * 11 times = 99 sector error) 
 	securomV4, // a.k.a SecuROM NEW (LBA -1 + 10 random error = 11 sector error)
 	smartE,
-	bluebyte,
+	ripGuard,
+	physicalErr,
+	edcEccErr,
 	microids
 } PROTECT_TYPE_CD, *PPROTECT_TYPE_CD;
 
@@ -121,6 +140,8 @@ typedef enum _PATH_TYPE {
 //     W = Wide
 typedef enum _PLXTR_DRIVE_TYPE {
 	No,
+	NotLatest,
+	Other,
 	PX760A,
 	PX755A,
 	PX716AL,
@@ -172,3 +193,13 @@ typedef enum _SUB_RTOW_TYPE {
 	AnyFull,
 	PSXSpecific
 } SUB_RTOW_TYPE, *PSUB_RTOW_TYPE;
+
+// SONY PS-SYSTEM   302R and 408R
+typedef enum _FEATURE_PROFILE_TYPE_EX {
+	ProfilePlaystationCdrom = 0xff50,
+	ProfilePlaystation2Cdrom = 0xff60,
+	ProfilePlaystation2DvdRom = 0xff61,
+	ProfilePlaystation3DvdRom = 0xff70,
+	ProfilePlaystation3BDRom = 0xff71,
+	ProfilePlaystation4BDRom = 0xff80,
+} FEATURE_PROFILE_TYPE_EX, *PFEATURE_PROFILE_TYPE_EX;

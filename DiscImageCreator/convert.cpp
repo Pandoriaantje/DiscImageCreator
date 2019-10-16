@@ -58,10 +58,10 @@ BOOL AlignRowSubcode(
 			for (INT nShift = 0; nShift < CHAR_BIT; nShift++, nColumn++) {
 				INT n = nShift - bitNum;
 				if (n > 0) {
-					lpRowSubcode[nRow] |= (lpColumnSubcode[nColumn] >> n) & nMask;
+					lpRowSubcode[nRow] |= (BYTE)((lpColumnSubcode[nColumn] >> n) & nMask);
 				}
 				else {
-					lpRowSubcode[nRow] |= (lpColumnSubcode[nColumn] << abs(n)) & nMask;
+					lpRowSubcode[nRow] |= (BYTE)((lpColumnSubcode[nColumn] << abs(n)) & nMask);
 				}
 				nMask >>= 1;
 			}
@@ -111,10 +111,10 @@ BOOL AlignColumnSubcode(
 			for (INT nShift = 0; nShift < CHAR_BIT; nShift++, nColumn++) {
 				INT n = nShift - bitNum;
 				if (n > 0) {
-					lpColumnSubcode[nColumn] |= (lpRowSubcode[nRow] << n) & nMask;
+					lpColumnSubcode[nColumn] |= (BYTE)((lpRowSubcode[nRow] << n) & nMask);
 				}
 				else {
-					lpColumnSubcode[nColumn] |= (lpRowSubcode[nRow] >> abs(n)) & nMask;
+					lpColumnSubcode[nColumn] |= (BYTE)((lpRowSubcode[nRow] >> abs(n)) & nMask);
 				}
 			}
 		}
@@ -180,33 +180,38 @@ LPVOID ConvParagraphBoundary(
 	PDEVICE pDevice,
 	LPBYTE pv
 ) {
+#ifdef _WIN32
 	return (LPVOID)(((UINT_PTR)pv + pDevice->AlignmentMask) & ~pDevice->AlignmentMask);
+#else
+	UNREFERENCED_PARAMETER(pDevice);
+	return (LPVOID)pv;
+#endif
 }
 
-DWORD PadSizeForVolDesc(
-	DWORD dwSize
+UINT PadSizeForVolDesc(
+	UINT uiSize
 ) {
-	INT nPadding = DISC_RAW_READ_SIZE - (INT)dwSize;
-	// dwSize isn't 2048 byte
+	INT nPadding = DISC_RAW_READ_SIZE - (INT)uiSize;
+	// uiSize isn't 2048 byte
 	if (nPadding != 0) {
-		// dwSize is smaller than 2048 byte
+		// uiSize is smaller than 2048 byte
 		if (nPadding > 0){
 			// Generally, directory size is per 2048 byte
 			// Exception:
 			//  Codename - Outbreak (Europe) (Sold Out Software)
 			//  Commandos - Behind Enemy Lines (Europe) (Sold Out Software)
 			// and more
-			dwSize += nPadding;
+			uiSize += nPadding;
 		}
-		// dwSize is larger than 2048 byte
+		// uiSize is larger than 2048 byte
 		else {
-			nPadding = (INT)dwSize % DISC_RAW_READ_SIZE;
-			// dwSize isn't 4096, 6144, 8192 etc byte
+			nPadding = (INT)uiSize % DISC_RAW_READ_SIZE;
+			// uiSize isn't 4096, 6144, 8192 etc byte
 			if (nPadding != 0) {
 				nPadding = DISC_RAW_READ_SIZE - nPadding;
-				dwSize += nPadding;
+				uiSize += nPadding;
 			}
 		}
 	}
-	return dwSize;
+	return uiSize;
 }

@@ -38,92 +38,36 @@ VOID FixMainHeader(
 	else {
 		lpWorkBuf = pDiscPerSector->data.current;
 	}
-	BOOL bHeader = IsValidMainDataHeader(lpWorkBuf);
-	INT idx = pDiscPerSector->byTrackNum - 1;
-	if (bHeader) {
-		if ((pDisc->PROTECT.byExist == smartE || pDisc->PROTECT.byExist == microids) &&
-			IsValidProtectedSector(pDisc, nLBA)) {
-			BYTE m, s, f;
-			if (!pExtArg->byBe) {
-				m = BcdToDec(BYTE(lpWorkBuf[12] ^ 0x01));
-				s = BcdToDec(BYTE(lpWorkBuf[13] ^ 0x80));
-				f = BcdToDec(lpWorkBuf[14]);
-			}
-			else {
-				m = BcdToDec(pDiscPerSector->data.current[12]);
-				s = BcdToDec(pDiscPerSector->data.current[13]);
-				f = BcdToDec(pDiscPerSector->data.current[14]);
-			}
-			INT tmpLBA = MSFtoLBA(m, s, f) - 150;
-			if (tmpLBA != nLBA) {
-				BYTE rm, rs, rf, mb, sb;
-				LBAtoMSF(nLBA + 150, &rm, &rs, &rf);
-				mb = rm;
-				sb = rs;
-				rm = DecToBcd(rm);
-				rs = DecToBcd(rs);
-				if (!pExtArg->byBe) {
-					rm ^= 0x01;
-					rs ^= 0x80;
-				}
-				lpWorkBuf[12] = rm;
-				lpWorkBuf[13] = rs;
-				lpWorkBuf[14] = DecToBcd(rf);
-				OutputMainErrorWithLBALogA(
-					"Original AMSF[%02u:%02u:%02u] -> Fixed AMSF[%02u:%02u:%02u]\n"
-					, nLBA, pDiscPerSector->byTrackNum, m, s, f, mb, sb, rf);
-			}
-			if (lpWorkBuf[15] != 0x61 && lpWorkBuf[15] != 0x62 && lpWorkBuf[15] != 0x01 && lpWorkBuf[15] != 0x02) {
-				OutputMainErrorWithLBALogA("Original Mode[0x%02x] -> Fixed Mode[0x%02x]\n"
-					, nLBA, pDiscPerSector->byTrackNum, lpWorkBuf[15], pDiscPerSector->mainHeader.current[15]);
-				lpWorkBuf[15] = pDiscPerSector->mainHeader.current[15];
-			}
+
+	if (pDisc->PROTECT.byExist == datel || pDisc->PROTECT.byExist == datelAlt) {
+		if (lpWorkBuf[15] != 0x62) {
+			OutputMainErrorWithLBALogA("Original Mode[0x%02x] -> Fixed Mode[0x%02x]\n"
+				, nLBA, pDiscPerSector->byTrackNum, lpWorkBuf[15], pDiscPerSector->mainHeader.current[15]);
+			lpWorkBuf[15] = pDiscPerSector->mainHeader.current[15];
 		}
 	}
-	else {
-		if (pExtArg->byScanProtectViaFile && pDisc->PROTECT.byExist) {
-			if ((pDisc->SCSI.toc.TrackData[idx].Control & AUDIO_DATA_TRACK) == AUDIO_DATA_TRACK &&
-				pDiscPerSector->subQ.current.byCtl == AUDIO_DATA_TRACK) {
-				if (pDisc->PROTECT.byExist == protectCDVOB) {
-					if (pDisc->PROTECT.ERROR_SECTOR.nExtentPos == 0) {
-						// 1st error sector (via /sf)
-						pDisc->PROTECT.ERROR_SECTOR.nExtentPos = nLBA;
-						pDisc->PROTECT.ERROR_SECTOR.nSectorSize = pDisc->SCSI.nAllLength - nLBA - 1;
-						pDiscPerSector->mainHeader.current[15] = DATA_BLOCK_MODE1 ^ 0x60;
-					}
-				}
+	BOOL bHeader = IsValidMainDataHeader(lpWorkBuf);
+	if (!bHeader) {
+		INT idx = pDiscPerSector->byTrackNum - 1;
+		if (pDisc->PROTECT.byExist == datel || pDisc->PROTECT.byExist == datelAlt || pDisc->PROTECT.byExist == codelock) {
+			if (((pDisc->SCSI.toc.TrackData[idx].Control & AUDIO_DATA_TRACK) == AUDIO_DATA_TRACK) &&
+				((pDiscPerSector->subQ.current.byCtl & AUDIO_DATA_TRACK) == AUDIO_DATA_TRACK)) {
 				if (IsValidProtectedSector(pDisc, nLBA)) {
-					if (pDisc->PROTECT.byExist == protectCDVOB) {
-						// forced to set scrambled data to reserved byte
-						OutputMainErrorWithLBALogA(
-							"Original reserved byte[0x%02x%02x%02x%02x%02x%02x%02x%02x] "
-							"-> Fixed reserved byte[0x486436ab56ff7ec0]\n", nLBA, pDiscPerSector->byTrackNum
-							, lpWorkBuf[0x814], lpWorkBuf[0x815], lpWorkBuf[0x816], lpWorkBuf[0x817]
-							, lpWorkBuf[0x818], lpWorkBuf[0x819], lpWorkBuf[0x81a], lpWorkBuf[0x81b]);
-						lpWorkBuf[0x814] = 0x48;
-						lpWorkBuf[0x815] = 0x64;
-						lpWorkBuf[0x816] = 0x36;
-						lpWorkBuf[0x817] = 0xab;
-						lpWorkBuf[0x818] = 0x56;
-						lpWorkBuf[0x819] = 0xff;
-						lpWorkBuf[0x81a] = 0x7e;
-						lpWorkBuf[0x81b] = 0xc0;
-					}
-					OutputMainErrorWithLBALogA("Original Mode[0x%02x] -> Fixed Mode[0x%02x]\n"
-						, nLBA, pDiscPerSector->byTrackNum, lpWorkBuf[15], pDiscPerSector->mainHeader.current[15]);
-					lpWorkBuf[15] = pDiscPerSector->mainHeader.current[15];
-
 					OutputMainErrorWithLBALogA(
-						"This sector is data, but sync is invalid, so the header is generated\n"
-						, nLBA, pDiscPerSector->byTrackNum);
+						"This sector is data, but sync is invalid\n", nLBA, pDiscPerSector->byTrackNum);
 					OutputCDMain(fileMainError, lpWorkBuf, nLBA, MAINHEADER_MODE1_SIZE);
 					memcpy(lpWorkBuf, pDiscPerSector->mainHeader.current, MAINHEADER_MODE1_SIZE);
+
+					OutputMainErrorWithLBALogA(
+						"Sync was generated\n", nLBA, pDiscPerSector->byTrackNum);
 					OutputCDMain(fileMainError, lpWorkBuf, nLBA, MAINHEADER_MODE1_SIZE);
 					bHeader = TRUE;
+					FlushLog();
 				}
 			}
 		}
 	}
+
 	memcpy(pDiscPerSector->mainHeader.current, lpWorkBuf, MAINHEADER_MODE1_SIZE);
 	UpdateTmpMainHeader(pDiscPerSector, nMainDataType);
 
@@ -133,13 +77,13 @@ VOID FixMainHeader(
 		INT nAdd = 0;
 
 		if (-4704 <= nOfs && nOfs < -2352) {
-			if (2 <= pExtArg->dwSubAddionalNum) {
+			if (2 <= pExtArg->uiSubAddionalNum) {
 				ctl = pDiscPerSector->subQ.nextNext.byCtl;
 				nAdd += 2;
 			}
 		}
 		else if (-2352 <= nOfs && nOfs < 0) {
-			if (1 <= pExtArg->dwSubAddionalNum) {
+			if (1 <= pExtArg->uiSubAddionalNum) {
 				ctl = pDiscPerSector->subQ.next.byCtl;
 				nAdd++;
 			}
@@ -211,7 +155,7 @@ BOOL FixSubQAdrMCN(
 		return FALSE;
 	}
 	else if (pDiscPerSector->subQ.current.byAdr == ADR_ENCODES_MEDIA_CATALOG) {
-		CHAR szCatalog[META_CATALOG_SIZE] = { 0 };
+		CHAR szCatalog[META_CATALOG_SIZE] = {};
 		BOOL bMCN = IsValidSubQAdrMCN(pDiscPerSector->subcode.current);
 		SetMCNToString(pDisc, pDiscPerSector->subcode.current, szCatalog, FALSE);
 
@@ -230,13 +174,13 @@ BOOL FixSubQAdrMCN(
 
 		INT nFirstLBA = pDisc->SUB.nFirstLBAForMCN[0][session - 1];
 		INT nPrevMCNSector = pDisc->SUB.nPrevMCNSector;
-		bRet = IsValidSubQAdrSector(pExtArg->dwSubAddionalNum, &pDiscPerSector->subQ,
+		bRet = IsValidSubQAdrSector(pExtArg->uiSubAddionalNum, &pDiscPerSector->subQ,
 			nRangeLBA, nFirstLBA, nPrevMCNSector, nLBA);
 		if (!bRet) {
 			nRangeLBA = pDisc->SUB.nRangeLBAForMCN[1][session - 1];
 			if (nRangeLBA != -1) {
 				nFirstLBA = pDisc->SUB.nFirstLBAForMCN[1][session - 1];
-				bRet = IsValidSubQAdrSector(pExtArg->dwSubAddionalNum, &pDiscPerSector->subQ, nRangeLBA, nFirstLBA, nPrevMCNSector, nLBA);
+				bRet = IsValidSubQAdrSector(pExtArg->uiSubAddionalNum, &pDiscPerSector->subQ, nRangeLBA, nFirstLBA, nPrevMCNSector, nLBA);
 			}
 		}
 	}
@@ -250,7 +194,7 @@ BOOL FixSubQAdrMCN(
 				(BYTE)(pDiscPerSector->subQ.current.byCtl << 4 | pDiscPerSector->subQ.current.byAdr);
 		}
 		if (pDiscPerSector->subQ.current.byAdr == ADR_ENCODES_MEDIA_CATALOG) {
-			CHAR szCatalog[META_CATALOG_SIZE] = { 0 };
+			CHAR szCatalog[META_CATALOG_SIZE] = {};
 			BOOL bMCN = IsValidSubQAdrMCN(pDiscPerSector->subcode.current);
 			SetMCNToString(pDisc, pDiscPerSector->subcode.current, szCatalog, FALSE);
 
@@ -266,7 +210,7 @@ BOOL FixSubQAdrMCN(
 	}
 	else {
 		if (pDiscPerSector->subQ.current.byAdr == ADR_ENCODES_MEDIA_CATALOG) {
-			CHAR szCatalog[META_CATALOG_SIZE] = { 0 };
+			CHAR szCatalog[META_CATALOG_SIZE] = {};
 			BOOL bMCN = IsValidSubQAdrMCN(pDiscPerSector->subcode.current);
 			SetMCNToString(pDisc, pDiscPerSector->subcode.current, szCatalog, FALSE);
 
@@ -311,7 +255,7 @@ BOOL FixSubQAdrISRC(
 		return FALSE;
 	}
 	else if (pDiscPerSector->subQ.current.byAdr == ADR_ENCODES_ISRC) {
-		CHAR szISRC[META_ISRC_SIZE] = { 0 };
+		CHAR szISRC[META_ISRC_SIZE] = {};
 		BOOL bISRC = IsValidSubQAdrISRC(pDiscPerSector->subcode.current);
 		SetISRCToString(pDisc, pDiscPerSector, szISRC, FALSE);
 
@@ -329,12 +273,12 @@ BOOL FixSubQAdrISRC(
 		}
 		INT nFirstLBA = pDisc->SUB.nFirstLBAForISRC[0][session - 1];
 		INT nPrevISRCSector = pDisc->SUB.nPrevISRCSector;
-		bRet = IsValidSubQAdrSector(pExtArg->dwSubAddionalNum, &pDiscPerSector->subQ, nRangeLBA, nFirstLBA, nPrevISRCSector, nLBA);
+		bRet = IsValidSubQAdrSector(pExtArg->uiSubAddionalNum, &pDiscPerSector->subQ, nRangeLBA, nFirstLBA, nPrevISRCSector, nLBA);
 		if (!bRet) {
 			nRangeLBA = pDisc->SUB.nRangeLBAForISRC[1][session - 1];
 			if (nRangeLBA != -1) {
 				nFirstLBA = pDisc->SUB.nFirstLBAForISRC[1][session - 1];
-				bRet = IsValidSubQAdrSector(pExtArg->dwSubAddionalNum, &pDiscPerSector->subQ, nRangeLBA, nFirstLBA, nPrevISRCSector, nLBA);
+				bRet = IsValidSubQAdrSector(pExtArg->uiSubAddionalNum, &pDiscPerSector->subQ, nRangeLBA, nFirstLBA, nPrevISRCSector, nLBA);
 			}
 		}
 	}
@@ -348,7 +292,7 @@ BOOL FixSubQAdrISRC(
 				(BYTE)(pDiscPerSector->subQ.current.byCtl << 4 | pDiscPerSector->subQ.current.byAdr);
 		}
 		if (pDiscPerSector->subQ.current.byAdr == ADR_ENCODES_ISRC) {
-			CHAR szISRC[META_ISRC_SIZE] = { 0 };
+			CHAR szISRC[META_ISRC_SIZE] = {};
 			BOOL bISRC = IsValidSubQAdrISRC(pDiscPerSector->subcode.current);
 			SetISRCToString(pDisc, pDiscPerSector, szISRC, FALSE);
 
@@ -358,7 +302,7 @@ BOOL FixSubQAdrISRC(
 					, nLBA, pDiscPerSector->byTrackNum, szISRC
 					, pDiscPerSector->subcode.current[20] & 0x0f, pDisc->SUB.pszISRC[pDiscPerSector->byTrackNum - 1]);
 
-				CHAR tmpISRC[META_ISRC_SIZE] = { 0 };
+				CHAR tmpISRC[META_ISRC_SIZE] = {};
 				strncpy(tmpISRC, pDisc->SUB.pszISRC[pDiscPerSector->byTrackNum - 1], sizeof(tmpISRC) / sizeof(tmpISRC[0]));
 				pDiscPerSector->subcode.current[13] = (BYTE)(((tmpISRC[0] - 0x30) << 2) | ((tmpISRC[1] - 0x30) >> 4));
 				pDiscPerSector->subcode.current[14] = (BYTE)(((tmpISRC[1] - 0x30) << 4) | ((tmpISRC[2] - 0x30) >> 2));
@@ -366,18 +310,18 @@ BOOL FixSubQAdrISRC(
 				pDiscPerSector->subcode.current[16] = (BYTE)((tmpISRC[4] - 0x30) << 2);
 				for (INT i = 17, j = 5; i < 20; i++, j += 2) {
 					pDiscPerSector->subcode.current[i] = (BYTE)(tmpISRC[j] - 0x30);
-					pDiscPerSector->subcode.current[i] <<= 4;
+					pDiscPerSector->subcode.current[i] = (BYTE)(pDiscPerSector->subcode.current[i] << 4);
 					pDiscPerSector->subcode.current[i] |= (BYTE)(tmpISRC[j + 1] - 0x30);
 				}
 				pDiscPerSector->subcode.current[20] = (BYTE)(tmpISRC[11] - 0x30);
-				pDiscPerSector->subcode.current[20] <<= 4;
+				pDiscPerSector->subcode.current[20] = (BYTE)(pDiscPerSector->subcode.current[20] << 4);
 			}
 			bRet = TRUE;
 		}
 	}
 	else {
 		if (pDiscPerSector->subQ.current.byAdr == ADR_ENCODES_ISRC) {
-			CHAR szISRC[META_ISRC_SIZE] = { 0 };
+			CHAR szISRC[META_ISRC_SIZE] = {};
 			BOOL bISRC = IsValidSubQAdrISRC(pDiscPerSector->subcode.current);
 			SetISRCToString(pDisc, pDiscPerSector, szISRC, FALSE);
 
@@ -434,6 +378,36 @@ VOID FixSubQ(
 	PDISC_PER_SECTOR pDiscPerSector,
 	INT nLBA
 ) {
+	if (pDisc->PROTECT.byExist == datel || pDisc->PROTECT.byExist == datelAlt) {
+		//========== LBA[145406, 0x237fe]: Sub Channel ==========
+		//	  +0 +1 +2 +3 +4 +5 +6 +7 +8 +9 +A +B
+		//	P FF FF FF FF FF FF FF FF FF 00 00 00
+		//	Q 83 54 02 4C 80 B2 00 64 40 41 AA 01
+		//========== LBA[145407, 0x237ff]: Sub Channel ==========
+		//	  +0 +1 +2 +3 +4 +5 +6 +7 +8 +9 +A +B
+		//	P 00 00 00 00 00 00 00 00 00 00 00 00
+		//	Q 26 40 60 00 32 20 56 79 AA 41 AA 01
+		if (pDiscPerSector->subcode.current[21] == 0x41 &&
+			(pDiscPerSector->subcode.current[22] == 0xaa || pDiscPerSector->subcode.current[22] == 0x01) &&
+			pDiscPerSector->subcode.current[23] == 0x01) {
+			pDiscPerSector->subcode.current[12] = pDiscPerSector->subcode.current[21];
+			pDiscPerSector->subcode.current[13] = pDiscPerSector->subcode.current[22];
+			pDiscPerSector->subcode.current[14] = pDiscPerSector->subcode.current[23];
+			pDiscPerSector->subcode.current[15] = pDiscPerSector->subcode.next[12];
+			pDiscPerSector->subcode.current[16] = pDiscPerSector->subcode.next[13];
+			pDiscPerSector->subcode.current[17] = pDiscPerSector->subcode.next[14];
+			pDiscPerSector->subcode.current[18] = pDiscPerSector->subcode.next[15];
+			pDiscPerSector->subcode.current[19] = pDiscPerSector->subcode.next[16];
+			pDiscPerSector->subcode.current[20] = pDiscPerSector->subcode.next[17];
+			pDiscPerSector->subcode.current[21] = pDiscPerSector->subcode.next[18];
+			pDiscPerSector->subcode.current[22] = pDiscPerSector->subcode.next[19];
+			pDiscPerSector->subcode.current[23] = pDiscPerSector->subcode.next[20];
+			SetTmpSubQDataFromBuffer(&pDiscPerSector->subQ.current, pDiscPerSector->subcode.current);
+			OutputSubErrorWithLBALogA("Q[12-23] all replaced\n"
+				, nLBA, pDiscPerSector->byTrackNum);
+		}
+	}
+
 	if (pDiscPerSector->subQ.prevPrev.byTrackNum == 110 ||
 		pDiscPerSector->subQ.prev.byTrackNum == 110 ||
 		pDiscPerSector->subQ.current.byTrackNum == 110) {
@@ -457,6 +431,12 @@ VOID FixSubQ(
 			pDiscPerSector->subcode.current[13] = 0xaa;
 			pDiscPerSector->subQ.current.byTrackNum = 110;
 
+			if (pDiscPerSector->subQ.current.byAdr >= ADR_ENCODES_MEDIA_CATALOG) {
+				OutputSubErrorWithLBALogA("Q[12]:Adr[%02x] -> [0x01]\n"
+					, nLBA, pDiscPerSector->byTrackNum, pDiscPerSector->subcode.current[13]);
+				pDiscPerSector->subQ.current.byAdr = ADR_ENCODES_CURRENT_POSITION;
+			}
+
 			RecalcSubQCrc(pDisc, pDiscPerSector);
 			if (!pDisc->SUB.nCorruptCrcH && !pDisc->SUB.nCorruptCrcL) {
 				return;
@@ -467,7 +447,7 @@ VOID FixSubQ(
 	BOOL bAdrCurrent = FALSE;
 	if ((pDiscPerSector->subQ.current.byAdr == ADR_ENCODES_MEDIA_CATALOG ||
 		pDiscPerSector->subQ.current.byAdr == ADR_ENCODES_ISRC) &&
-		(pDiscPerSector->subQ.prev.byAdr != ADR_ENCODES_MEDIA_CATALOG ||
+		(pDiscPerSector->subQ.prev.byAdr != ADR_ENCODES_MEDIA_CATALOG &&
 			pDiscPerSector->subQ.prev.byAdr != ADR_ENCODES_ISRC)) {
 
 		// assume that adr is incorrect
@@ -508,14 +488,14 @@ VOID FixSubQ(
 			}
 		}
 		else {
-			pDiscPerSector->subQ.current.byAdr = bBackupAdr;
+			pDiscPerSector->subQ.current.byAdr = (BYTE)(bBackupAdr & 0x0f);
 			pDiscPerSector->subcode.current[12] =
 				(BYTE)(pDiscPerSector->subQ.current.byCtl << 4 | pDiscPerSector->subQ.current.byAdr);
 			pDiscPerSector->subcode.current[13] = DecToBcd(bBackupTrackNum);
 			pDiscPerSector->subcode.current[14] = DecToBcd(bBackupIndex);
 
 			// assume that adr is correct but MCN or ISRC is incorrect
-			if (1 <= pExtArg->dwSubAddionalNum) {
+			if (1 <= pExtArg->uiSubAddionalNum) {
 				// first check adr:2
 				if (!FixSubQAdrMCN(pExecType, pExtArg, pDisc, pDiscPerSector, nLBA)) {
 					// Next check adr:3
@@ -565,7 +545,7 @@ VOID FixSubQ(
 	// assume that adr is incorrect but MCN or ISRC is correct
 	else {
 		if (pDisc->SUB.byCatalog) {
-			CHAR szCatalog[META_CATALOG_SIZE] = { 0 };
+			CHAR szCatalog[META_CATALOG_SIZE] = {};
 			BOOL bMCN = IsValidSubQAdrMCN(pDiscPerSector->subcode.current);
 			SetMCNToString(pDisc, pDiscPerSector->subcode.current, szCatalog, FALSE);
 
@@ -584,7 +564,7 @@ VOID FixSubQ(
 			}
 		}
 		if (pDisc->SUB.lpISRCList[pDiscPerSector->byTrackNum - 1] == 0) {
-			CHAR szISRC[META_ISRC_SIZE] = { 0 };
+			CHAR szISRC[META_ISRC_SIZE] = {};
 			BOOL bISRC = IsValidSubQAdrISRC(pDiscPerSector->subcode.current);
 			SetISRCToString(pDisc, pDiscPerSector, szISRC, FALSE);
 
@@ -618,7 +598,7 @@ VOID FixSubQ(
 		}
 	}
 
-	BYTE SubQcodeOrg[12] = { 0 };
+	BYTE SubQcodeOrg[12] = {};
 	if (pDiscPerSector->bLibCrypt || pDiscPerSector->bSecuRom) {
 		memcpy(SubQcodeOrg, &pDiscPerSector->subcode.current[12], sizeof(SubQcodeOrg));
 	}
@@ -717,15 +697,16 @@ VOID FixSubQ(
 		BOOL bPrevPrevIndex = TRUE;
 		if (!IsValidSubQIdx(pDisc, pDiscPerSector, nLBA, &bPrevIndex, &bPrevPrevIndex)) {
 			BYTE tmpIdx = pDiscPerSector->subQ.prev.byIndex;
-			if (tmpIdx != 0 && tmpIdx != 1) {
-				if (nLBA == pDisc->SCSI.lpFirstLBAListOnToc[pDiscPerSector->byTrackNum]) {
-					tmpIdx = 1;
-				}
-				else if (IsValidPregapSector(pDisc, &pDiscPerSector->subQ, nLBA)) {
-					if (pDiscPerSector->subQ.next.byIndex == 0 &&
-						pDiscPerSector->subQ.next.nRelativeTime + 1 == pDiscPerSector->subQ.current.nRelativeTime) {
-						tmpIdx = 0;
-					}
+			if (pDiscPerSector->subQ.prev.byAdr != ADR_ENCODES_CURRENT_POSITION) {
+				tmpIdx = pDiscPerSector->subQ.prevPrev.byIndex;
+			}
+
+			if (nLBA == pDisc->SCSI.lpFirstLBAListOnToc[pDiscPerSector->byTrackNum - 1]) {
+				tmpIdx = 1;
+			}
+			else if (IsValidPregapSector(pDisc, &pDiscPerSector->subQ, nLBA)) {
+				if (pDiscPerSector->subQ.next.nRelativeTime + 1 == pDiscPerSector->subQ.current.nRelativeTime) {
+					tmpIdx = 0;
 				}
 			}
 			OutputSubErrorWithLBALogA("Q[14]:Idx[%02u] -> [%02u], L:[%ld]\n"
@@ -770,9 +751,9 @@ VOID FixSubQ(
 			BYTE byPrevMinute = 0;
 			INT tmpRel = 0;
 			if (pDiscPerSector->subQ.prev.byAdr == ADR_ENCODES_CURRENT_POSITION) {
-				if (!(pDiscPerSector->subQ.prev.byIndex == 0 && pDiscPerSector->subQ.current.byIndex == 1) &&
-					!(pDiscPerSector->subQ.prev.byIndex >= 1 && pDiscPerSector->subQ.current.byIndex == 0) ||
-					nLBA == 0 && pDisc->PROTECT.byExist == securomV3) {
+				if ((!(pDiscPerSector->subQ.prev.byIndex == 0 && pDiscPerSector->subQ.current.byIndex == 1) &&
+					!(pDiscPerSector->subQ.prev.byIndex >= 1 && pDiscPerSector->subQ.current.byIndex == 0)) ||
+					(nLBA == 0 && (pDisc->PROTECT.byExist == securomV3_1 || pDisc->PROTECT.byExist == securomV3_2))) {
 					if (pDiscPerSector->subQ.current.byIndex > 0) {
 						if (pDisc->SCSI.lpFirstLBAListOnToc[pDiscPerSector->byTrackNum] != nLBA) {
 							tmpRel = pDiscPerSector->subQ.prev.nRelativeTime + 1;
@@ -782,7 +763,7 @@ VOID FixSubQ(
 						tmpRel = pDiscPerSector->subQ.prev.nRelativeTime - 1;
 					}
 					// Colin McRae Rally 2.0 (Europe) (En,Fr,De,Es,It) etc
-					if (pDiscPerSector->bSecuRom && pDisc->PROTECT.byExist == securomV3 && nLBA == 7) {
+					if (pDiscPerSector->bSecuRom && pDisc->PROTECT.byExist == securomV3_1 && nLBA == 7) {
 						tmpRel -= 1;
 					}
 					LBAtoMSF(tmpRel, &byMinute, &bySecond, &byFrame);
@@ -947,7 +928,7 @@ VOID FixSubQ(
 		}
 	}
 
-	if (!IsValidSubQCtl(&pDiscPerSector->subQ, pDisc->SUB.lpEndCtlList[pDiscPerSector->subQ.current.byTrackNum - 1])) {
+	if (!IsValidSubQCtl(&pDiscPerSector->subQ, pDisc->SUB.lpEndCtlList[pDiscPerSector->byTrackNum - 1])) {
 		OutputSubErrorWithLBALogA("Q[12]:Ctl[%u] -> [%u], L:[%ld]\n", nLBA, pDiscPerSector->byTrackNum
 			, pDiscPerSector->subQ.current.byCtl, pDiscPerSector->subQ.prev.byCtl, s_lineNum);
 		pDiscPerSector->subQ.current.byCtl = pDiscPerSector->subQ.prev.byCtl;
@@ -960,7 +941,7 @@ VOID FixSubQ(
 		}
 	}
 
-	// pDiscPerSector->subcode.current has already fixed ramdom errors (= original crc)
+	// pDiscPerSector->subcode.current has already fixed random errors (= original crc)
 	WORD crc16 = (WORD)GetCrc16CCITT(10, &pDiscPerSector->subcode.current[12]);
 	if (pDiscPerSector->bLibCrypt || pDiscPerSector->bSecuRom) {
 		BOOL bExist = FALSE;
@@ -1004,9 +985,12 @@ VOID FixSubQ(
 			pDiscPerSector->subcode.current[23] = SubQcodeOrg[11];
 			OutputIntentionalSubchannel(nLBA, &pDiscPerSector->subcode.current[12]);
 			pDisc->PROTECT.byRestoreCounter = 0;
+			pDisc->SUB.nCorruptCrcH = 0;
+			pDisc->SUB.nCorruptCrcL = 0;
 		}
 		else {
-			if (pDisc->PROTECT.byExist == securomV1 || pDisc->PROTECT.byExist == securomV2 || pDisc->PROTECT.byExist == securomV3) {
+			if (pDisc->PROTECT.byExist == securomV1 || pDisc->PROTECT.byExist == securomV2 ||
+				pDisc->PROTECT.byExist == securomV3_1 || pDisc->PROTECT.byExist == securomV3_2) {
 				INT nPrevRMSF = MSFtoLBA(BcdToDec(pDiscPerSector->subcode.current[15])
 					, BcdToDec(pDiscPerSector->subcode.current[16]), BcdToDec(pDiscPerSector->subcode.current[17]));
 				INT nRMSF = MSFtoLBA(BcdToDec(SubQcodeOrg[3]), BcdToDec(SubQcodeOrg[4]), BcdToDec(SubQcodeOrg[5]));
@@ -1014,8 +998,9 @@ VOID FixSubQ(
 					, BcdToDec(pDiscPerSector->subcode.current[20]), BcdToDec(pDiscPerSector->subcode.current[21]));
 				INT nAMSF = MSFtoLBA(BcdToDec(SubQcodeOrg[7]), BcdToDec(SubQcodeOrg[8]), BcdToDec(SubQcodeOrg[9]));
 
-				if (nPrevRMSF + 1 == nRMSF && nPrevAMSF + 1 == nAMSF ||
-					nPrevRMSF == nRMSF && nPrevAMSF + 1 == nAMSF && pDisc->PROTECT.byExist == securomV3 && 0 <= nLBA && nLBA < 9) {
+				if ((nPrevRMSF + 1 == nRMSF && nPrevAMSF + 1 == nAMSF) ||
+					(nPrevRMSF == nRMSF && nPrevAMSF + 1 == nAMSF && 0 <= nLBA && nLBA < 9 &&
+					(pDisc->PROTECT.byExist == securomV3_1 || pDisc->PROTECT.byExist == securomV3_2))) {
 					OutputSubInfoWithLBALogA(
 						"Detected shifted sub. Restore RMSF[%02x:%02x:%02x to %02x:%02x:%02x] AMSF[%02x:%02x:%02x to %02x:%02x:%02x]\n"
 						, nLBA, pDiscPerSector->byTrackNum, pDiscPerSector->subcode.current[15], pDiscPerSector->subcode.current[16]
@@ -1032,6 +1017,8 @@ VOID FixSubQ(
 					pDiscPerSector->subcode.current[21] = SubQcodeOrg[9];
 					OutputIntentionalSubchannel(nLBA, &pDiscPerSector->subcode.current[12]);
 					pDisc->PROTECT.byRestoreCounter++;
+					pDisc->SUB.nCorruptCrcH = 0;
+					pDisc->SUB.nCorruptCrcL = 0;
 				}
 				else {
 					OutputSubInfoWithLBALogA("Intentional error doesn't exist.\n", nLBA, pDiscPerSector->byTrackNum);
@@ -1127,10 +1114,10 @@ VOID FixSubRtoW(
 	INT nLBA
 ) {
 #if 0
-	BYTE pDiscPerSector->subcode.currentOrg[CD_RAW_READ_SUBCODE_SIZE] = { 0 };
-	memcpy(pDiscPerSector->subcode.currentOrg, pDiscPerSector->data.current + pDevice->TRANSFER.dwBufSubOffset, CD_RAW_READ_SUBCODE_SIZE);
-	SUB_R_TO_W scRW[4] = { 0 };
-	BYTE tmpCode[24] = { 0 };
+	BYTE pDiscPerSector->subcode.currentOrg[CD_RAW_READ_SUBCODE_SIZE] = {};
+	memcpy(pDiscPerSector->subcode.currentOrg, pDiscPerSector->data.current + pDevice->TRANSFER.uiBufSubOffset, CD_RAW_READ_SUBCODE_SIZE);
+	SUB_R_TO_W scRW[4] = {};
+	BYTE tmpCode[24] = {};
 	for (INT k = 0; k < 4; k++) {
 		for (INT j = 0; j < 24; j++) {
 			tmpCode[j] = (BYTE)(*(pDiscPerSector->subcode.currentOrg + (k * 24 + j)) & 0x3f);
@@ -1208,7 +1195,7 @@ VOID FixSubRtoW(
 	return;
 }
 
-VOID FixSubChannel(
+BOOL FixSubChannel(
 	PEXEC_TYPE pExecType,
 	PEXT_ARG pExtArg,
 	PDEVICE pDevice,
@@ -1219,18 +1206,18 @@ VOID FixSubChannel(
 ) {
 	if (pExtArg->byMultiSession && pDisc->MAIN.nFixFirstLBAofLeadout <= nLBA &&
 		nLBA < pDisc->MAIN.nFixFirstLBAofLeadout + 11400) {
-		return;
+		return TRUE;
 	}
 	if (pDisc->SUB.nSubChannelOffset) {
 		SetTmpSubQDataFromBuffer(&pDiscPerSector->subQ.next, pDiscPerSector->subcode.next);
-		if (1 <= pExtArg->dwSubAddionalNum) {
+		if (1 <= pExtArg->uiSubAddionalNum) {
 			SetTmpSubQDataFromBuffer(&pDiscPerSector->subQ.nextNext, pDiscPerSector->subcode.nextNext);
 		}
 	}
 	else {
-		if (1 <= pExtArg->dwSubAddionalNum) {
+		if (1 <= pExtArg->uiSubAddionalNum) {
 			SetTmpSubQDataFromBuffer(&pDiscPerSector->subQ.next, pDiscPerSector->subcode.next);
-			if (2 <= pExtArg->dwSubAddionalNum) {
+			if (2 <= pExtArg->uiSubAddionalNum) {
 				SetTmpSubQDataFromBuffer(&pDiscPerSector->subQ.nextNext, pDiscPerSector->subcode.nextNext);
 			}
 		}
@@ -1248,6 +1235,7 @@ VOID FixSubChannel(
 		BOOL bAFrame = IsValidSubQAFrame(pDiscPerSector->subcode.current, nLBA);
 
 		if (-76 < nLBA) {
+			BOOL bSubOk = FALSE;
 			if (!pDisc->SUB.nCorruptCrcH && !pDisc->SUB.nCorruptCrcL && (bAMSF || bAFrame)) {
 				if (*pExecType == swap) {
 					if (pDiscPerSector->byTrackNum + 1 == pDiscPerSector->subQ.current.byTrackNum) {
@@ -1258,7 +1246,7 @@ VOID FixSubChannel(
 					UpdateTmpSubQDataForMCN(pExtArg, pDisc, pDiscPerSector, nLBA);
 					pDisc->SUB.nPrevMCNSector = nLBA;
 					if (!pDisc->SUB.byCatalog) {
-						CHAR szCatalog[META_CATALOG_SIZE] = { 0 };
+						CHAR szCatalog[META_CATALOG_SIZE] = {};
 						SetMCNToString(pDisc, pDiscPerSector->subcode.current, szCatalog, TRUE);
 						pDisc->SUB.byCatalog = TRUE;
 					}
@@ -1267,7 +1255,7 @@ VOID FixSubChannel(
 					UpdateTmpSubQDataForISRC(&pDiscPerSector->subQ);
 					pDisc->SUB.nPrevISRCSector = nLBA;
 					if (pDisc->SUB.lpISRCList[pDiscPerSector->byTrackNum - 1] == 0) {
-						CHAR szISRC[META_ISRC_SIZE] = { 0 };
+						CHAR szISRC[META_ISRC_SIZE] = {};
 						SetISRCToString(pDisc, pDiscPerSector, szISRC, TRUE);
 					}
 				}
@@ -1279,13 +1267,44 @@ VOID FixSubChannel(
 					OutputSubErrorLogA("OK\n");
 					*bReread = FALSE;
 				}
+				bSubOk = TRUE;
 			}
-			else {
-				if (!*bReread) {
+			else if (!*bReread && !pDiscPerSector->bLibCrypt && !pDiscPerSector->bSecuRom) {
+				DISC_PER_SECTOR tmpSector = {};
+				memcpy(&tmpSector, pDiscPerSector, sizeof(DISC_PER_SECTOR));
+				tmpSector.subQ.current = tmpSector.subQ.next;
+				tmpSector.subQ.current.nRelativeTime -= 1;
+				tmpSector.subQ.current.nAbsoluteTime -= 1;
+				SetBufferFromTmpSubQData(tmpSector.subcode.current, tmpSector.subQ.current, TRUE, FALSE);
+				RecalcSubQCrc(pDisc, &tmpSector);
+
+				if (!pDisc->SUB.nCorruptCrcH && !pDisc->SUB.nCorruptCrcL) {
+					memcpy(&pDiscPerSector->subcode.current[12], &tmpSector.subcode.current[12], 12);
+					SetTmpSubQDataFromBuffer(&pDiscPerSector->subQ.current, pDiscPerSector->subcode.current);
+					OutputSubErrorWithLBALogA("Q fixed using next subQ\n", nLBA, pDiscPerSector->byTrackNum);
+					bSubOk = TRUE;
+				}
+				else {
+					tmpSector.subQ.current = tmpSector.subQ.prev;
+					tmpSector.subQ.current.nRelativeTime += 1;
+					tmpSector.subQ.current.nAbsoluteTime += 1;
+					SetBufferFromTmpSubQData(tmpSector.subcode.current, tmpSector.subQ.current, TRUE, FALSE);
+					RecalcSubQCrc(pDisc, &tmpSector);
+
+					if (!pDisc->SUB.nCorruptCrcH && !pDisc->SUB.nCorruptCrcL) {
+						memcpy(&pDiscPerSector->subcode.current[12], &tmpSector.subcode.current[12], 12);
+						SetTmpSubQDataFromBuffer(&pDiscPerSector->subQ.current, pDiscPerSector->subcode.current);
+						OutputSubErrorWithLBALogA("Q fixed using prev subQ\n", nLBA, pDiscPerSector->byTrackNum);
+						bSubOk = TRUE;
+					}
+				}
+			}
+			if (!bSubOk) {
+				if (!*bReread && pDiscPerSector->bReturnCode != RETURNED_EXIST_C2_ERROR) {
 					if (nLBA < MAX_LBA_OF_CD) {
 						OutputSubErrorWithLBALogA("Q Reread [crc16 unmatch] -> ", nLBA, pDiscPerSector->byTrackNum);
 						*bReread = TRUE;
-						return;
+						return TRUE;
 					}
 					else {
 						OutputSubErrorWithLBALogA("Q [crc16 unmatch] Fix manually\n", nLBA, pDiscPerSector->byTrackNum);
@@ -1293,9 +1312,29 @@ VOID FixSubChannel(
 				}
 				else {
 					OutputSubErrorLogA("NG. Fix manually\n");
+//					OutputCDC2Error296(fileSubError, pDiscPerSector->data.current + 2352, nLBA);
+//					OutputCDSub96Raw(fileSubError, pDiscPerSector->data.current + 2352 + 294, nLBA);
+					OutputCDSub96Align(fileSubError, pDiscPerSector->subcode.current, nLBA);
 					*bReread = FALSE;
 				}
-				FixSubQ(pExecType, pExtArg, pDisc, pDiscPerSector, nLBA);
+
+				if (pDiscPerSector->subcode.current[22] == 0 && pDiscPerSector->subcode.current[23] == 0) {
+					OutputSubErrorWithLBALogA("Q crc16 is 0. Main-channel may be corrupt\n", nLBA, pDiscPerSector->byTrackNum);
+					*bReread = FALSE;
+//					return FALSE;
+				}
+//				else {
+					FixSubQ(pExecType, pExtArg, pDisc, pDiscPerSector, nLBA);
+					if (pDiscPerSector->subQ.current.byAdr == ADR_ENCODES_MEDIA_CATALOG) {
+						UpdateTmpSubQDataForMCN(pExtArg, pDisc, pDiscPerSector, nLBA);
+					}
+					else if (pDiscPerSector->subQ.current.byAdr == ADR_ENCODES_ISRC) {
+						UpdateTmpSubQDataForISRC(&pDiscPerSector->subQ);
+					}
+					else if (pDiscPerSector->subQ.current.byAdr == ADR_ENCODES_CDTV_SPECIFIC) {
+						UpdateTmpSubQDataForCDTV(pDisc, pDiscPerSector, nLBA);
+					}
+//				}
 			}
 		}
 		else {
@@ -1306,6 +1345,29 @@ VOID FixSubChannel(
 			}
 		}
 	}
+	else {
+		// manually fix
+#if 0
+		if (pDiscPerSector->subQ.current.byTrackNum > pDisc->SCSI.toc.LastTrack && pDiscPerSector->subQ.current.byTrackNum != 110) {
+			OutputErrorString("pDiscPerSector->subQ.current.byTrackNum:%d, pDiscPerSector->subQ.prev.byTrackNum:%d\n"
+				, pDiscPerSector->subQ.current.byTrackNum, pDiscPerSector->subQ.prev.byTrackNum);
+			pDiscPerSector->subQ.current.byTrackNum = pDiscPerSector->subQ.prev.byTrackNum;
+		}
+		RecalcSubQCrc(pDisc, pDiscPerSector);
+		if (pDisc->SUB.nCorruptCrcH || pDisc->SUB.nCorruptCrcL) {
+			FixSubQ(pExecType, pExtArg, pDisc, pDiscPerSector, nLBA);
+		}
+		if (pDiscPerSector->subQ.current.byAdr == ADR_ENCODES_MEDIA_CATALOG) {
+			UpdateTmpSubQDataForMCN(pExtArg, pDisc, pDiscPerSector, nLBA);
+		}
+		else if (pDiscPerSector->subQ.current.byAdr == ADR_ENCODES_ISRC) {
+			UpdateTmpSubQDataForISRC(&pDiscPerSector->subQ);
+		}
+		else if (pDiscPerSector->subQ.current.byAdr == ADR_ENCODES_CDTV_SPECIFIC) {
+			UpdateTmpSubQDataForCDTV(pDisc, pDiscPerSector, nLBA);
+		}
+#endif
+	}
 	if (!*bReread) {
 		if (!pExtArg->bySkipSubP) {
 			FixSubP(pDiscPerSector, nLBA);
@@ -1314,5 +1376,5 @@ VOID FixSubChannel(
 			FixSubRtoW(pDevice, pDisc, pDiscPerSector, nLBA);
 		}
 	}
-	return;
+	return TRUE;
 }

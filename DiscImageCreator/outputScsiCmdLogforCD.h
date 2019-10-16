@@ -39,17 +39,17 @@ VOID OutputFsDirectoryRecord(
 	PEXT_ARG pExtArg,
 	PDISC pDisc,
 	LPBYTE lpBuf,
-	DWORD dwExtentPos,
-	DWORD dwDataLen,
+	UINT uiExtentPos,
+	UINT uiDataLen,
 	LPSTR fname
 );
 
 BOOL OutputFsPathTableRecord(
-	PDISC pDisc,
 	LPBYTE lpBuf,
-	DWORD dwLogicalBlkCoef,
-	DWORD dwPathTblPos,
-	DWORD dwPathTblSize,
+	UINT uiLogicalBlkCoef,
+	UINT uiPathTblPos,
+	UINT uiPathTblSize,
+	BOOL bPathType,
 	PDIRECTORY_RECORD pDirRec,
 	LPINT nDirPosNum
 );
@@ -67,8 +67,8 @@ VOID OutputFs3doHeader(
 VOID OutputFs3doDirectoryRecord(
 	LPBYTE lpBuf,
 	INT nLBA,
-	LPCH pPath,
-	LONG lDirSize
+	LPCCH pPath,
+	UINT uiDirSize
 );
 
 VOID OutputFsPceStuff(
@@ -135,6 +135,7 @@ VOID OutputCDMain(
 );
 
 VOID OutputCDSub96Align(
+	LOG_TYPE type,
 	LPBYTE lpBuf,
 	INT nLBA
 );
@@ -149,6 +150,5 @@ VOID OutputCDSubToLog(
 	PDISC pDisc,
 	PDISC_PER_SECTOR pDiscPerSector,
 	LPBYTE lpSubcodeRaw,
-	INT nLBA,
-	FILE* fpParse
+	INT nLBA
 );

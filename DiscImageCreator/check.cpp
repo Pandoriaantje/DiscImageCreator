@@ -23,6 +23,74 @@ extern BYTE g_aSyncHeader[SYNC_SIZE];
 // This global variable is set if function is error
 extern LONG s_lineNum;
 
+BOOL IsXbox(
+	PEXEC_TYPE pExecType
+) {
+	if (*pExecType == xbox || *pExecType == xboxswap ||
+		*pExecType == xgd2swap || *pExecType == xgd3swap) {
+		return TRUE;
+	}
+	return FALSE;
+}
+
+BOOL IsCDBasedDisc(
+	PEXEC_TYPE pExecType,
+	PDISC pDisc
+) {
+	if (pDisc->SCSI.wCurrentMedia == ProfileCdrom ||
+		pDisc->SCSI.wCurrentMedia == ProfileCdRecordable ||
+		pDisc->SCSI.wCurrentMedia == ProfileCdRewritable ||
+		(pDisc->SCSI.wCurrentMedia == ProfileInvalid && (*pExecType == gd)) ||
+		pDisc->SCSI.wCurrentMedia == ProfilePlaystationCdrom ||
+		pDisc->SCSI.wCurrentMedia == ProfilePlaystation2Cdrom) {
+		return TRUE;
+	}
+	return FALSE;
+}
+
+BOOL IsDVDBasedDisc(
+	PDISC pDisc
+) {
+	if (pDisc->SCSI.wCurrentMedia == ProfileDvdRom ||
+		pDisc->SCSI.wCurrentMedia == ProfileDvdRecordable ||
+		pDisc->SCSI.wCurrentMedia == ProfileDvdRam ||
+		pDisc->SCSI.wCurrentMedia == ProfileDvdRewritable ||
+		pDisc->SCSI.wCurrentMedia == ProfileDvdRWSequential ||
+		pDisc->SCSI.wCurrentMedia == ProfileDvdDashRDualLayer ||
+		pDisc->SCSI.wCurrentMedia == ProfileDvdDashRLayerJump ||
+		pDisc->SCSI.wCurrentMedia == ProfileDvdPlusRW ||
+		pDisc->SCSI.wCurrentMedia == ProfileDvdPlusR ||
+		pDisc->SCSI.wCurrentMedia == ProfileDvdPlusRWDualLayer ||
+		pDisc->SCSI.wCurrentMedia == ProfileDvdPlusRDualLayer ||
+		pDisc->SCSI.wCurrentMedia == ProfileHDDVDRom ||
+		pDisc->SCSI.wCurrentMedia == ProfileHDDVDRecordable ||
+		pDisc->SCSI.wCurrentMedia == ProfileHDDVDRam ||
+		pDisc->SCSI.wCurrentMedia == ProfileHDDVDRewritable ||
+		pDisc->SCSI.wCurrentMedia == ProfileHDDVDRDualLayer ||
+		pDisc->SCSI.wCurrentMedia == ProfileHDDVDRWDualLayer ||
+		pDisc->SCSI.wCurrentMedia == ProfilePlaystation2DvdRom ||
+		pDisc->SCSI.wCurrentMedia == ProfilePlaystation3DvdRom
+		) {
+		return TRUE;
+	}
+	return FALSE;
+}
+
+BOOL IsBDBasedDisc(
+	PDISC pDisc
+) {
+	if (pDisc->SCSI.wCurrentMedia == ProfileBDRom ||
+		pDisc->SCSI.wCurrentMedia == ProfileBDRSequentialWritable ||
+		pDisc->SCSI.wCurrentMedia == ProfileBDRRandomWritable ||
+		pDisc->SCSI.wCurrentMedia == ProfileBDRewritable ||
+		pDisc->SCSI.wCurrentMedia == ProfilePlaystation3BDRom ||
+		pDisc->SCSI.wCurrentMedia == ProfilePlaystation4BDRom
+		) {
+		return TRUE;
+	}
+	return FALSE;
+}
+
 BOOL IsCDRDrive(
 	PDISC pDisc
 ) {
@@ -33,51 +101,88 @@ BOOL IsCDRDrive(
 	return FALSE;
 }
 
+BOOL IsValidPS3Drive(
+	PDEVICE pDevice
+) {
+	if (!strncmp(pDevice->szVendorId, "SONY    ", DRIVE_VENDOR_ID_SIZE)) {
+		if (!strncmp(pDevice->szProductId, "PS-SYSTEM   302R", DRIVE_PRODUCT_ID_SIZE)) {
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+BOOL IsValidAsusDrive(
+	PDEVICE pDevice
+) {
+	if (!strncmp(pDevice->szVendorId, "ASUS    ", DRIVE_VENDOR_ID_SIZE)) {
+		if (!strncmp(pDevice->szProductId, "BW-16D1HT       ", DRIVE_PRODUCT_ID_SIZE)) {
+			if (!strncmp(pDevice->szProductRevisionLevel, "3.02", DRIVE_VERSION_ID_SIZE)) {
+				pDevice->byAsusDrive = TRUE;
+				return TRUE;
+			}
+		}
+	}
+	return FALSE;
+}
+
 BOOL IsValidPlextorDrive(
 	PDEVICE pDevice
 ) {
 	if (!strncmp(pDevice->szVendorId, "PLEXTOR ", DRIVE_VENDOR_ID_SIZE)) {
 		if (!strncmp(pDevice->szProductId, "DVDR   PX-760A  ", DRIVE_PRODUCT_ID_SIZE)) {
 			if (strncmp(pDevice->szProductRevisionLevel, "1.07", DRIVE_VERSION_ID_SIZE)) {
-				return FALSE;
+				pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::NotLatest;
 			}
-			pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::PX760A;
+			else {
+				pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::PX760A;
+			}
 		}
 		else if (!strncmp(pDevice->szProductId, "DVDR   PX-755A  ", DRIVE_PRODUCT_ID_SIZE)) {
 			if (strncmp(pDevice->szProductRevisionLevel, "1.08", DRIVE_VERSION_ID_SIZE)) {
-				return FALSE;
+				pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::NotLatest;
 			}
-			pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::PX755A;
+			else {
+				pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::PX755A;
+			}
 		}
 		else if (!strncmp(pDevice->szProductId, "DVDR   PX-716AL ", DRIVE_PRODUCT_ID_SIZE)) {
 			if (strncmp(pDevice->szProductRevisionLevel, "1.02", DRIVE_VERSION_ID_SIZE)) {
-				return FALSE;
+				pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::NotLatest;
 			}
-			pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::PX716AL;
+			else {
+				pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::PX716AL;
+			}
 		}
 		else if (!strncmp(pDevice->szProductId, "DVDR   PX-716A  ", DRIVE_PRODUCT_ID_SIZE)) {
 			if (strncmp(pDevice->szProductRevisionLevel, "1.11", DRIVE_VERSION_ID_SIZE)) {
-				return FALSE;
+				pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::NotLatest;
 			}
-			pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::PX716A;
+			else {
+				pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::PX716A;
+			}
 		}
 		else if (!strncmp(pDevice->szProductId, "DVDR   PX-714A  ", DRIVE_PRODUCT_ID_SIZE)) {
 			pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::PX714A;
 		}
 		else if (!strncmp(pDevice->szProductId, "DVDR   PX-712A  ", DRIVE_PRODUCT_ID_SIZE)) {
 			if (strncmp(pDevice->szProductRevisionLevel, "1.09", DRIVE_VERSION_ID_SIZE)) {
-				return FALSE;
+				pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::NotLatest;
 			}
-			pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::PX712A;
+			else {
+				pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::PX712A;
+			}
 		}
 		else if (!strncmp(pDevice->szProductId, "DVDR   PX-708A2 ", DRIVE_PRODUCT_ID_SIZE)) {
 			pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::PX708A2;
 		}
 		else if (!strncmp(pDevice->szProductId, "DVDR   PX-708A  ", DRIVE_PRODUCT_ID_SIZE)) {
 			if (strncmp(pDevice->szProductRevisionLevel, "1.12", DRIVE_VERSION_ID_SIZE)) {
-				return FALSE;
+				pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::NotLatest;
 			}
-			pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::PX708A;
+			else {
+				pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::PX708A;
+			}
 		}
 		else if (!strncmp(pDevice->szProductId, "DVDR   PX-704A  ", DRIVE_PRODUCT_ID_SIZE)) {
 			pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::PX704A;
@@ -87,39 +192,51 @@ BOOL IsValidPlextorDrive(
 		}
 		else if (!strncmp(pDevice->szProductId, "CD-R   PREMIUM2 ", DRIVE_PRODUCT_ID_SIZE)) {
 			if (strncmp(pDevice->szProductRevisionLevel, "1.03", DRIVE_VERSION_ID_SIZE)) {
-				return FALSE;
+				pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::NotLatest;
 			}
-			pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::PREMIUM2;
+			else {
+				pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::PREMIUM2;
+			}
 		}
 		else if (!strncmp(pDevice->szProductId, "CD-R   PREMIUM  ", DRIVE_PRODUCT_ID_SIZE)) {
 			if (strncmp(pDevice->szProductRevisionLevel, "1.07", DRIVE_VERSION_ID_SIZE)) {
-				return FALSE;
+				pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::NotLatest;
 			}
-			pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::PREMIUM;
+			else {
+				pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::PREMIUM;
+			}
 		}
 		else if (!strncmp(pDevice->szProductId, "CD-R   PX-W5224A", DRIVE_PRODUCT_ID_SIZE)) {
 			if (strncmp(pDevice->szProductRevisionLevel, "1.04", DRIVE_VERSION_ID_SIZE)) {
-				return FALSE;
+				pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::NotLatest;
 			}
-			pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::PXW5224A;
+			else {
+				pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::PXW5224A;
+			}
 		}
 		else if (!strncmp(pDevice->szProductId, "CD-R   PX-W4824A", DRIVE_PRODUCT_ID_SIZE)) {
 			if (strncmp(pDevice->szProductRevisionLevel, "1.07", DRIVE_VERSION_ID_SIZE)) {
-				return FALSE;
+				pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::NotLatest;
 			}
-			pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::PXW4824A;
+			else {
+				pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::PXW4824A;
+			}
 		}
 		else if (!strncmp(pDevice->szProductId, "CD-R   PX-W4012A", DRIVE_PRODUCT_ID_SIZE)) {
 			if (strncmp(pDevice->szProductRevisionLevel, "1.07", DRIVE_VERSION_ID_SIZE)) {
-				return FALSE;
+				pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::NotLatest;
 			}
-			pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::PXW4012A;
+			else {
+				pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::PXW4012A;
+			}
 		}
 		else if (!strncmp(pDevice->szProductId, "CD-R   PX-W4012S", DRIVE_PRODUCT_ID_SIZE)) {
 			if (strncmp(pDevice->szProductRevisionLevel, "1.06", DRIVE_VERSION_ID_SIZE)) {
-				return FALSE;
+				pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::NotLatest;
 			}
-			pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::PXW4012S;
+			else {
+				pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::PXW4012S;
+			}
 		}
 		else if (!strncmp(pDevice->szProductId, "CD-R   PX-W2410A", DRIVE_PRODUCT_ID_SIZE)) {
 			pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::PXW2410A;
@@ -182,10 +299,11 @@ BOOL IsValidPlextorDrive(
 			pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::PX8XCS;
 		}
 		else {
-			pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::No;
+			pDevice->byPlxtrDrive = PLXTR_DRIVE_TYPE::Other;
 		}
+		return TRUE;
 	}
-	return TRUE;
+	return FALSE;
 }
 
 VOID SupportIndex0InTrack1(
@@ -214,7 +332,7 @@ BOOL IsValidMainDataHeader(
 	LPBYTE lpBuf
 ) {
 	BOOL bRet = TRUE;
-	for (INT c = 0; c < sizeof(g_aSyncHeader); c++) {
+	for (size_t c = 0; c < sizeof(g_aSyncHeader); c++) {
 		if (lpBuf[c] != g_aSyncHeader[c]) {
 			bRet = FALSE;
 			break;
@@ -240,7 +358,7 @@ BOOL IsValid3doDataHeader(
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 	};
 	INT i = 0;
-	for (INT c = 0; c < sizeof(a3doHeader); i++, c++) {
+	for (size_t c = 0; c < sizeof(a3doHeader); i++, c++) {
 		if (lpBuf[i] != a3doHeader[c]) {
 			bRet = FALSE;
 			break;
@@ -284,7 +402,7 @@ BOOL IsValidPceSector(
 		0x93, 0x82, 0xaa, 0x8f, 0x8a, 0x97, 0x4c, 0x82,
 		0xb5, 0x82, 0xc4, 0x82, 0xa8, 0x82, 0xe8, 0x82
 	};
-	for (INT i = 0; i < sizeof(warningStr); i++) {
+	for (size_t i = 0; i < sizeof(warningStr); i++) {
 		if (lpBuf[i] != warningStr[i]) {
 			bRet = FALSE;
 			break;
@@ -356,8 +474,8 @@ BOOL IsValidSecuRomSector(
 				bRet = TRUE;
 			}
 		}
-		else if (pDisc->PROTECT.byExist == securomV3) {
-			if (0 <= nLBA && nLBA < 8 || 5000 <= nLBA && nLBA < 25000) {
+		else if (pDisc->PROTECT.byExist == securomV3_1 || pDisc->PROTECT.byExist == securomV3_2) {
+			if ((0 <= nLBA && nLBA < 8) || (5000 <= nLBA && nLBA < 25000)) {
 				bRet = TRUE;
 			}
 		}
@@ -378,8 +496,32 @@ BOOL IsValidProtectedSector(
 	BOOL bRet = FALSE;
 	if ((pDisc->PROTECT.byExist && pDisc->PROTECT.ERROR_SECTOR.nExtentPos <= nLBA &&
 		nLBA <= pDisc->PROTECT.ERROR_SECTOR.nExtentPos + pDisc->PROTECT.ERROR_SECTOR.nSectorSize) ||
-		(pDisc->PROTECT.byExist == microids && pDisc->PROTECT.ERROR_SECTOR.nExtentPos2nd <= nLBA &&
+		((pDisc->PROTECT.byExist == microids || pDisc->PROTECT.byExist == datelAlt)
+			&& pDisc->PROTECT.ERROR_SECTOR.nExtentPos2nd <= nLBA &&
 			nLBA <= pDisc->PROTECT.ERROR_SECTOR.nExtentPos2nd + pDisc->PROTECT.ERROR_SECTOR.nSectorSize2nd)) {
+		bRet = TRUE;
+	}
+	return bRet;
+}
+
+BOOL IsSafeDiscErrorNum(
+	UINT uiErrorNum
+) {
+	BOOL bRet = FALSE;
+	// 288 and 264 and 240 are reentrant's info
+	if (uiErrorNum == 312 || uiErrorNum == 288 || uiErrorNum == 264 || uiErrorNum == 240) {
+		bRet = TRUE;
+	}
+	return bRet;
+}
+
+BOOL IsValidSafeDiscSector(
+	PDISC pDisc,
+	PDISC_PER_SECTOR pDiscPerSector
+) {
+	BOOL bRet = FALSE;
+	if ((pDisc->PROTECT.byExist == safeDisc || pDisc->PROTECT.byExist == safeDiscLite) &&
+		 IsSafeDiscErrorNum(pDiscPerSector->uiC2errorNum)) {
 		bRet = TRUE;
 	}
 	return bRet;
@@ -390,8 +532,10 @@ BOOL IsValidIntentionalC2error(
 	PDISC_PER_SECTOR pDiscPerSector
 ) {
 	BOOL bRet = FALSE;
-	if (pDisc->PROTECT.byExist == codelock || pDisc->PROTECT.byExist == datel ||
-		(pDisc->PROTECT.byExist == safeDisc && pDiscPerSector->dwC2errorNum == SAFEDISC_C2ERROR_NUM)) {
+	if (pDisc->PROTECT.byExist == codelock ||
+		pDisc->PROTECT.byExist == datel ||
+		pDisc->PROTECT.byExist == datelAlt ||
+		IsValidSafeDiscSector(pDisc, pDiscPerSector)) {
 		bRet = TRUE;
 	}
 	return bRet;
@@ -480,7 +624,7 @@ BOOL IsValidSubQAdrISRC(
 }
 
 BOOL IsValidSubQAdrSector(
-	DWORD dwSubAdditionalNum,
+	UINT uiSubAdditionalNum,
 	PSUB_Q pSubQ,
 	INT nRangeLBA,
 	INT nFirstLBA,
@@ -493,7 +637,7 @@ BOOL IsValidSubQAdrSector(
 	if (nLBA < 0 ||
 		(nLBA == nTmpLBA) ||
 		(nLBA - nPrevAdrSector == nRangeLBA)) {
-		if (1 <= dwSubAdditionalNum) {
+		if (1 <= uiSubAdditionalNum) {
 			if (pSubQ->next.byAdr != ADR_ENCODES_MEDIA_CATALOG &&
 				pSubQ->next.byAdr != ADR_ENCODES_ISRC) {
 				bRet = TRUE;
@@ -768,7 +912,8 @@ BOOL IsValidSubQTrack(
 					// LBA[361285, 0x58345]: P[ff], Q[0122000000000080191061a1]{Audio, 2ch, Copy NG, Pre-emphasis No, Track[22], Idx[00], RMSF[00:00:00], AMSF[80:19:10]}, RtoW[0, 0, 0, 0]
 					// LBA[361286, 0x58346]: P[ff], Q[012201000000008019113653]{Audio, 2ch, Copy NG, Pre-emphasis No, Track[22], Idx[01], RMSF[00:00:00], AMSF[80:19:11]}, RtoW[0, 0, 0, 0]
 					// LBA[361287, 0x58347]: P[00], Q[01220100000100801912ac61]{Audio, 2ch, Copy NG, Pre-emphasis No, Track[22], Idx[01], RMSF[00:00:01], AMSF[80:19:12]}, RtoW[0, 0, 0, 0]
-					else if (nLBA < pDisc->SCSI.lpFirstLBAListOnToc[pDiscPerSector->subQ.prev.byTrackNum]) {
+					else if (nLBA < pDisc->SCSI.lpFirstLBAListOnToc[pDiscPerSector->subQ.prev.byTrackNum] &&
+						(pDiscPerSector->subQ.prev.nRelativeTime - 1 == pDiscPerSector->subQ.current.nRelativeTime)) {
 						s_lineNum = __LINE__;
 						bRet = FALSE;
 					}
@@ -866,7 +1011,17 @@ BOOL IsValidSubQTrack(
 	}
 	else if (pDiscPerSector->subQ.prevPrev.byAdr == ADR_ENCODES_CURRENT_POSITION &&
 		pDiscPerSector->subQ.prevPrev.byTrackNum != pDiscPerSector->subQ.current.byTrackNum) {
-		if (pDiscPerSector->subQ.prevPrev.byTrackNum + 2 <= pDiscPerSector->subQ.current.byTrackNum ||
+		// Sonic CD (USA)
+		// LBA[089657, 0x15e39]: P[00], Q[01070100165000195732b85e]{Audio, 2ch, Copy NG, Pre-emphasis No, Track[07], Idx[01], RMSF[00:16:50], AMSF[19:57:32]}, RtoW[0, 0, 0, 0]
+		// LBA[089658, 0x15e3a]: P[00], Q[01070100165100195733022e]{Audio, 2ch, Copy NG, Pre-emphasis No, Track[07], Idx[01], RMSF[00:16:51], AMSF[19:57:33]}, RtoW[0, 0, 0, 0]
+		// LBA[089659, 0x15e3b]: P[00], Q[0200000000000000003457a2]{Audio, 2ch, Copy NG, Pre-emphasis No, MediaCatalogNumber [0000000000000], AMSF[     :34]}, RtoW[0, 0, 0, 0]
+		// LBA[089660, 0x15e3c]: P[00], Q[01060100165300195735cd48]{Audio, 2ch, Copy NG, Pre-emphasis No, Track[06], Idx[01], RMSF[00:16:53], AMSF[19:57:35]}, RtoW[0, 0, 0, 0]
+		// LBA[089661, 0x15e3d]: P[00], Q[0107010016540019573671dc]{Audio, 2ch, Copy NG, Pre-emphasis No, Track[07], Idx[01], RMSF[00:16:54], AMSF[19:57:36]}, RtoW[0, 0, 0, 0]
+		if (pDiscPerSector->subQ.prevPrev.byTrackNum > pDiscPerSector->subQ.current.byTrackNum) {
+			s_lineNum = __LINE__;
+			return FALSE;
+		}
+		else if (pDiscPerSector->subQ.prevPrev.byTrackNum + 2 <= pDiscPerSector->subQ.current.byTrackNum ||
 			pDiscPerSector->subQ.prevPrev.byTrackNum == 110) {
 			s_lineNum = __LINE__;
 			return FALSE;
@@ -874,6 +1029,7 @@ BOOL IsValidSubQTrack(
 	}
 	return bRet;
 }
+
 BOOL IsValidBCD(
 	BYTE bySrc
 ) {
@@ -1046,30 +1202,154 @@ BOOL IsValidSubQAMSF(
 BOOL ContainsC2Error(
 	PDEVICE pDevice,
 	LPBYTE lpBuf,
-	LPDWORD lpdwC2errorNum
+	LPUINT lpuiC2errorNum,
+	BOOL bOutputLog
 ) {
 	BOOL bRet = RETURNED_NO_C2_ERROR_1ST;
-	*lpdwC2errorNum = 0;
+	*lpuiC2errorNum = 0;
+	BOOL bErr = FALSE;
 	for (WORD wC2ErrorPos = 0; wC2ErrorPos < CD_RAW_READ_C2_294_SIZE; wC2ErrorPos++) {
-		DWORD dwPos = pDevice->TRANSFER.dwBufC2Offset + wC2ErrorPos;
-		if (lpBuf[dwPos] != 0) {
+		UINT uiPos = pDevice->TRANSFER.uiBufC2Offset + wC2ErrorPos;
+		if (wC2ErrorPos < CD_RAW_READ_C2_294_SIZE - 10 &&
+			lpBuf[uiPos] == 0xf0 && lpBuf[uiPos + 1] == 0xf0 && lpBuf[uiPos + 2] == 0xf0 &&
+			lpBuf[uiPos + 3] == 0 && lpBuf[uiPos + 4] == 0 && lpBuf[uiPos + 5] == 0 &&
+			lpBuf[uiPos + 6] == 0x0f && lpBuf[uiPos + 7] == 0x0f && lpBuf[uiPos + 8] == 0x0f && lpBuf[uiPos + 9] == 0x0f) {
+			if (bOutputLog) {
+				OutputC2ErrorLogA("Detected F0 F0 F0 00 00 00 0F 0F 0F 0F\n");
+			}
+		}
+		else if (lpBuf[uiPos] != 0) {
 			// Ricoh based drives (+97 read offset, like the Aopen CD-RW CRW5232)
 			// use lsb points to 1st byte of main. 
 			// But almost drive is msb points to 1st byte of main.
-			//			INT nBit = 0x01;
+//			INT nBit = 0x01;
 			INT nBit = 0x80;
+			if (bOutputLog && !bErr) {
+				OutputC2ErrorLogA("                 ofs: ");
+			}
 			for (INT n = 0; n < CHAR_BIT; n++) {
 				// exist C2 error
-				if (lpBuf[dwPos] & nBit) {
+				if (lpBuf[uiPos] & nBit) {
 					// wC2ErrorPos * CHAR_BIT => position of byte
 					// (position of byte) + n => position of bit
 					bRet = RETURNED_EXIST_C2_ERROR;
-					(*lpdwC2errorNum)++;
+					(*lpuiC2errorNum)++;
+					if (bOutputLog) {
+						OutputC2ErrorLogA("%x, ", wC2ErrorPos * 8 + n);
+						bErr = TRUE;
+					}
 				}
 //				nBit <<= 1;
 				nBit >>= 1;
 			}
 		}
+	}
+	if (bOutputLog && bErr) {
+		OutputC2ErrorLogA("\n");
+	}
+	return bRet;
+}
+
+BOOL AnalyzeIfoFile(
+	PDEVICE pDevice
+) {
+	BOOL bRet = TRUE;
+	CONST size_t bufSize = 25;
+	_TCHAR szBuf[bufSize] = {};
+	_sntprintf(szBuf, bufSize, _T("%c:\\VIDEO_TS\\VIDEO_TS.IFO"), pDevice->byDriveLetter);
+
+	if (PathFileExists(szBuf)) {
+		_TCHAR szFnameAndExt[_MAX_FNAME] = {};
+		FILE* fp = CreateOrOpenFile(szBuf, NULL, NULL, szFnameAndExt, NULL, _T(".IFO"), _T("rb"), 0, 0);
+		if (!fp) {
+			OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
+			return FALSE;
+		}
+		LPBYTE pSector = NULL;
+		try {
+			if (NULL == (pSector = (LPBYTE)calloc(pDevice->dwMaxTransferLength, sizeof(BYTE)))) {
+				OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
+				throw FALSE;
+			}
+			if (fread(pSector, sizeof(BYTE), DISC_RAW_READ_SIZE, fp) != DISC_RAW_READ_SIZE) {
+				throw FALSE;
+			}
+			WORD wNumOfTitleSets = MAKEWORD(pSector[0x3f], pSector[0x3e]);
+			LONG lStartOfsOfPttSrpt = MAKELONG(MAKEWORD(pSector[0xc7], pSector[0xc6]), MAKEWORD(pSector[0xc5], pSector[0xc4]));
+			fseek(fp, DISC_RAW_READ_SIZE * lStartOfsOfPttSrpt, SEEK_SET);
+			if (fread(pSector, sizeof(BYTE), DISC_RAW_READ_SIZE, fp) != DISC_RAW_READ_SIZE) {
+				throw FALSE;
+			}
+			WORD wNumOfTitlePlayMaps = MAKEWORD(pSector[1], pSector[0]);
+			OutputLogA(fileDisc, "%s, NumberOfTitlePlayMaps: %d\n", szFnameAndExt, wNumOfTitlePlayMaps);
+			for (WORD v = 0; v < wNumOfTitlePlayMaps; v++) {
+				WORD wNumOfChapters = MAKEWORD(pSector[0xb + 12 * v], pSector[0xa + 12 * v]);
+				BYTE byNumOfTitleSet = pSector[0xe + 12 * v];
+				BYTE byNumOfTitleSetTitleNumber = pSector[0xf + 12 * v];
+				UINT uiStartSector = MAKEUINT(MAKEWORD(pSector[0x13 + 12 * v], pSector[0x12 + 12 * v])
+					, MAKEWORD(pSector[0x11 + 12 * v], pSector[0x10 + 12 * v]));
+				OutputLogA(fileDisc, "\tTitle %2d, VTS_%02d, TitleNumber %2d, NumberOfChapters: %2d, StartSector: %d\n"
+					, v + 1, byNumOfTitleSet, byNumOfTitleSetTitleNumber, wNumOfChapters, uiStartSector);
+			}
+			INT nPgcCnt = 0;
+			for (WORD w = 1; w <= wNumOfTitleSets; w++) {
+				_sntprintf(szBuf, bufSize, _T("%c:\\VIDEO_TS\\VTS_%02d_0.IFO"), pDevice->byDriveLetter, w);
+				if (PathFileExists(szBuf)) {
+					FILE* fpVts = CreateOrOpenFile(szBuf, NULL, NULL, szFnameAndExt, NULL, _T(".IFO"), _T("rb"), 0, 0);
+					if (!fpVts) {
+						OutputLastErrorNumAndString(_T(__FUNCTION__), __LINE__);
+						break;
+					}
+					if (fread(pSector, sizeof(BYTE), DISC_RAW_READ_SIZE, fpVts) != DISC_RAW_READ_SIZE) {
+						FcloseAndNull(fpVts);
+						break;
+					}
+					LONG lStartOfsOfPgci = MAKELONG(MAKEDWORD(pSector[0xcf], pSector[0xce]), MAKEDWORD(pSector[0xcd], pSector[0xcc]));
+					fseek(fpVts, DISC_RAW_READ_SIZE * lStartOfsOfPgci, SEEK_SET);
+
+					if (fread(pSector, sizeof(BYTE), 8, fpVts) != 8) {
+						FcloseAndNull(fpVts);
+						break;
+					}
+					fseek(fpVts, -8, SEEK_CUR);
+					WORD wNumOfPgciSrp = MAKEWORD(pSector[1], pSector[0]);
+					UINT wByteOfPgciSrpTbl = MAKEUINT(MAKEWORD(pSector[7], pSector[6]), MAKEWORD(pSector[5], pSector[4]));
+					if (fread(pSector, sizeof(BYTE), 8 + wByteOfPgciSrpTbl, fpVts) != 8 + wByteOfPgciSrpTbl) {
+						FcloseAndNull(fpVts);
+						break;
+					}
+					UINT uiPgciStartByte[100] = {};
+					for (WORD x = 0; x < wNumOfPgciSrp; x++) {
+						uiPgciStartByte[x] = MAKEUINT(MAKEWORD(pSector[0xf + 8 * x], pSector[0xe + 8 * x])
+							, MAKEWORD(pSector[0xd + 8 * x], pSector[0xc + 8 * x]));
+						INT nNumOfPrograms = pSector[uiPgciStartByte[x] + 2];
+						INT nNumOfCells = pSector[uiPgciStartByte[x] + 3];
+						INT nPlayBackTimeH = pSector[uiPgciStartByte[x] + 4];
+						INT nPlayBackTimeM = pSector[uiPgciStartByte[x] + 5];
+						INT nPlayBackTimeS = pSector[uiPgciStartByte[x] + 6];
+						OutputLogA(fileDisc, "%s, ProgramChain %2d, NumberOfPrograms %2d, NumberOfCells %2d, PlayBackTime -- %02x:%02x:%02x\n"
+							, szFnameAndExt, x + 1, nNumOfPrograms, nNumOfCells, nPlayBackTimeH, nPlayBackTimeM, nPlayBackTimeS);
+						nPgcCnt++;
+					}
+				}
+				else {
+					bRet = FALSE;
+					break;
+				}
+			}
+			OutputLogA(fileDisc, "NumberOfProgramChain: %d\n", nPgcCnt);
+			if (wNumOfTitlePlayMaps != nPgcCnt) {
+				OutputLogA(standardOut | fileDisc, "Detected irregular title number\n");
+			}
+		}
+		catch (BOOL bErr) {
+			bRet = bErr;
+		}
+		FcloseAndNull(fp);
+		FreeAndNull(pSector);
+	}
+	else {
+		bRet = FALSE;
 	}
 	return bRet;
 }

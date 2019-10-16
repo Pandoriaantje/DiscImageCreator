@@ -27,18 +27,16 @@ BOOL Inquiry(
 	PDEVICE pDevice
 );
 
-BOOL ModeSense10(
-	PEXEC_TYPE pExecType,
-	PEXT_ARG pExtArg,
-	PDEVICE pDevice,
-	PDISC pDisc
-);
-
 BOOL StartStopUnit(
 	PEXT_ARG pExtArg,
 	PDEVICE pDevice,
 	BYTE Start,
 	BYTE LoadEject
+);
+
+BOOL SynchronizeCache(
+	PEXT_ARG pExtArg,
+	PDEVICE pDevice
 );
 
 BOOL ReadTOC(
@@ -52,8 +50,10 @@ BOOL ReadTOCFull(
 	PEXT_ARG pExtArg,
 	PDEVICE pDevice,
 	PDISC pDisc,
-	PDISC_PER_SECTOR pDiscPerSector,
-	FILE* fpCcd
+	PCDROM_TOC_FULL_TOC_DATA pFullTocData,
+	PCDROM_TOC_FULL_TOC_DATA_BLOCK* pTocData,
+	LPWORD wTocEntries,
+	LPBYTE* pPFullToc
 );
 
 BOOL ReadTOCAtip(
@@ -73,11 +73,36 @@ BOOL ReadDiscInformation(
 	PDEVICE pDevice
 );
 
+BOOL ModeSense10(
+	PEXEC_TYPE pExecType,
+	PEXT_ARG pExtArg,
+	PDEVICE pDevice,
+	PDISC pDisc
+);
+
+BOOL SendKey(
+	PEXT_ARG pExtArg,
+	PDEVICE pDevice,
+	BYTE agid,
+	BYTE keyFormat,
+	LPBYTE key,
+	WORD keyLength
+);
+
+BOOL ReportKey(
+	PEXT_ARG pExtArg,
+	PDEVICE pDevice,
+	BYTE agid,
+	BYTE keyFormat,
+	LPBYTE key,
+	WORD keyLength
+);
+
 BOOL SetDiscSpeed(
 	PEXEC_TYPE pExecType,
 	PEXT_ARG pExtArg,
 	PDEVICE pDevice,
-	DWORD dwDiscSpeedNum
+	UINT uiDiscSpeedNum
 );
 
 BOOL SetSpeedRead(
@@ -91,12 +116,19 @@ BOOL Reset(
 	PDEVICE pDevice
 );
 
+BOOL ReadCacheForLgAsus(
+	PEXT_ARG pExtArg,
+	PDEVICE pDevice,
+	PDISC pDisc,
+	INT nLBA
+);
+
 BOOL ReadDriveInformation(
 	PEXEC_TYPE pExecType,
 	PEXT_ARG pExtArg,
 	PDEVICE pDevice,
 	PDISC pDisc,
-	DWORD dwCDSpeed
+	UINT uiCDSpeed
 );
 
 BOOL ReadGDForTOC(

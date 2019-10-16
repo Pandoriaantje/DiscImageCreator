@@ -16,6 +16,15 @@
 #pragma once
 
 #define DVD_RAW_READ	(2064)
+#define DVD_RAW_READ2	(2384)
+
+BOOL ReadDVDReverse(
+	PEXT_ARG pExtArg,
+	PDEVICE pDevice,
+	LPCTSTR pszFullPath,
+	INT nStartLBA,
+	INT nLastLBA
+);
 
 BOOL ReadDVD(
 	PEXEC_TYPE pExecType,
@@ -54,6 +63,21 @@ BOOL SetLockState(
 
 BOOL ReadXboxDVD(
 	PEXEC_TYPE pExecType,
+	PEXT_ARG pExtArg,
+	PDEVICE pDevice,
+	PDISC pDisc,
+	LPCTSTR pszFullPath
+);
+
+BOOL ReadXboxDVDBySwap(
+	PEXEC_TYPE pExecType,
+	PEXT_ARG pExtArg,
+	PDEVICE pDevice,
+	PDISC pDisc,
+	LPCTSTR pszFullPath
+);
+
+BOOL ReadSACD(
 	PEXT_ARG pExtArg,
 	PDEVICE pDevice,
 	PDISC pDisc,

@@ -18,25 +18,31 @@
 BOOL GetAlignedCallocatedBuffer(
 	PDEVICE pDevice,
 	LPBYTE* ppSrcBuf,
-	DWORD dwSize,
+	UINT uiSize,
 	LPBYTE* ppOutBuf,
 	LPCTSTR pszFuncName,
 	LONG lLineNum
 );
 
 BOOL GetHandle(
-	PDEVICE pDevice,
-	_TCHAR* szBuf,
-	size_t bufSize
+	PDEVICE pDevice
 );
 
-VOID GetDriveOffsetManually(
+BOOL GetDriveOffsetManually(
 	LPINT lpDriveOffset
 );
 
 BOOL GetDriveOffsetAuto(
 	LPCSTR szProductId,
 	LPINT lpDriveOffset
+);
+
+BOOL GetFilenameToSkipError(
+	LPSTR szFilename
+);
+
+BOOL GetFilenameToFixError(
+	LPSTR szFilename
 );
 
 DWORD GetFileSize(
@@ -49,6 +55,20 @@ UINT64 GetFileSize64(
 	FILE *fp
 );
 
+BOOL GetDiscSize(
+	LPTSTR path,
+	PUINT64 lpSize
+);
+
+WORD GetSizeOrWordForVolDesc(
+	LPBYTE lpBuf
+);
+
+UINT GetSizeOrUintForVolDesc(
+	LPBYTE lpBuf,
+	UINT uiMax
+);
+
 BYTE GetMode(
 	PDISC_PER_SECTOR pDiscPerSector,
 	INT nType
@@ -57,6 +77,12 @@ BYTE GetMode(
 BOOL GetWriteOffset(
 	PDISC pDisc,
 	LPBYTE lpBuf
+);
+
+BOOL GetCmd(
+	LPTSTR szPath,
+	LPCTSTR szFname,
+	LPCTSTR szExt
 );
 
 BOOL GetEccEdcCmd(
@@ -73,11 +99,9 @@ BOOL GetUnscCmd(
 	LPCTSTR pszPath
 );
 
-WORD GetSizeOrWordForVolDesc(
-	LPBYTE lpBuf
-);
-
-DWORD GetSizeOrDwordForVolDesc(
-	LPBYTE lpBuf,
-	DWORD dwMax
+BOOL GetCssCmd(
+	PDEVICE pDevice,
+	LPTSTR pszStr,
+	_PROTECT_TYPE_DVD protect,
+	LPCTSTR pszPath
 );

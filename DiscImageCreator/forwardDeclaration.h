@@ -16,6 +16,7 @@
 #pragma once
 #include "enum.h"
 
+#define BD_DRIVE_MAX_SPEED	(12)
 #define DVD_DRIVE_MAX_SPEED	(16)
 #define DRIVE_VENDOR_ID_SIZE (8)
 #define DRIVE_PRODUCT_ID_SIZE (16)
@@ -29,6 +30,7 @@
 
 #define MAXIMUM_NUMBER_INDEXES		(100)
 #define SESSION_TO_SESSION_SKIP_LBA (11400)
+#define LEADOUT_SIZE_OF_MULTISESSION (6750)
 #define FIRST_LBA_FOR_GD			(45000)
 #define MAX_LBA_OF_CD				(449850) // MSF 100:00:00
 #define PREGAP_START_LBA			(-5000)
@@ -51,7 +53,7 @@
 
 #define META_CATALOG_SIZE		(13 + 1)
 #define META_ISRC_SIZE			(12 + 1)
-#define META_CDTEXT_SIZE		(80 + 1)
+#define META_CDTEXT_SIZE		(160 + 1)
 
 #define EXELBA_STORE_SIZE (4096) // TODO
 #define EXENAME_STORE_SIZE (64) // TODO
@@ -65,8 +67,6 @@
 // Unicodeで64文字までの長いファイル名を記録できる。
 #define MAX_FNAME_FOR_VOLUME (128)
 #define MIN_LEN_DR (34)
-
-#define SAFEDISC_C2ERROR_NUM	(312)
 
 // PLEXTOR specified command
 #if 0
@@ -141,7 +141,10 @@
 #define RETURNED_SKIP_LBA					(4)
 #define RETURNED_FALSE						(5)
 
+#define MAKEUINT(a, b)      ((UINT)(((WORD)(((UINT_PTR)(a)) & 0xffff)) | ((UINT)((WORD)(((UINT_PTR)(b)) & 0xffff))) << 16))
 #define MAKEDWORD(a, b)      ((DWORD)(((WORD)(((DWORD_PTR)(a)) & 0xffff)) | ((DWORD)((WORD)(((DWORD_PTR)(b)) & 0xffff))) << 16))
+#define MAKEUINT64(a, b)      ((UINT64)(((UINT)(((UINT_PTR)(a)) & 0xffffffff)) | ((UINT64)((UINT)(((UINT_PTR)(b)) & 0xffffffff))) << 32))
+#define MAKEDWORD64(a, b)      ((DWORD64)(((DWORD)(((DWORD_PTR)(a)) & 0xffffffff)) | ((DWORD64)((DWORD)(((DWORD_PTR)(b)) & 0xffffffff))) << 32))
 
 struct _LOG_FILE;
 typedef struct _LOG_FILE LOG_FILE;
